@@ -1,0 +1,1626 @@
+// === CONFIGURATIE (TOETSEN) ===
+let BINDINGS = {
+  left: 'ArrowLeft',
+  right: 'ArrowRight',
+  up: 'ArrowUp',
+  down: 'ArrowDown',
+  jump: 'KeyZ',
+  whip: 'KeyX',
+  sub: 'KeyC',
+  inv: 'KeyI'
+};
+try{let saved=localStorage.getItem('psalm_bindings');if(saved)BINDINGS=JSON.parse(saved);}catch(e){}
+
+let bindingKey = null;
+
+// === PSALM DATA ===
+const PS=[
+{id:1,pn:23,ref:"Psalm 23:1",full:"De HEERE is mijn Herder, mij zal niets ontbreken.",q:{p:"De HEERE is mijn Herder, ...",a:"mij zal niets ontbreken.",w:["mij zal geen kwaad geschieden.","Hij zal mij bewaren.","ik zal niet vrezen."]},pu:{t:"healing",n:"Herdersstaf",d:"Geneest uw wonden.",dur:15,m:1.5}},
+{id:2,pn:23,ref:"Psalm 23:4",full:"Al ging ik ook in een dal der schaduw des doods, ik zou geen kwaad vrezen, want Gij zijt met mij.",q:{p:"Al ging ik ook in een dal der schaduw des doods, ...",a:"ik zou geen kwaad vrezen, want Gij zijt met mij.",w:["Gij zult mij verlossen van den boze.","ik zal Uw Naam loven te aller tijd.","Uw engelen zullen mij bewaren."]},pu:{t:"invincibility",n:"Sluier des Doods",d:"Geen vijand kan u deren.",dur:6,m:999}},
+{id:3,pn:91,ref:"Psalm 91:1",full:"Die in de schuilplaats des Allerhoogsten is gezeten, die zal vernachten in de schaduw des Almachtigen.",q:{p:"Die in de schuilplaats des Allerhoogsten is gezeten, ...",a:"die zal vernachten in de schaduw des Almachtigen.",w:["die zal geen kwaad wedervaren.","die zal eeuwiglijk niet wankelen.","over hem zal de HEERE Zich ontfermen."]},pu:{t:"shield",n:"Schuilplaats des Allerhoogsten",d:"Weert alle aanvallen af.",dur:12,m:2}},
+{id:4,pn:144,ref:"Psalm 144:1",full:"Gezegend zij de HEERE, mijn Rotssteen, Die mijn handen onderwijst ten strijde, mijn vingeren ten oorlog.",q:{p:"Gezegend zij de HEERE, mijn Rotssteen, ...",a:"Die mijn handen onderwijst ten strijde, mijn vingeren ten oorlog.",w:["Die mij verlost van al mijn vijanden.","Die mij sterkte geeft als een leeuw.","mijn Schild en mijn Bevrijder."]},pu:{t:"attack",n:"Strijdershandschoenen",d:"Verdubbelde aanvalskracht.",dur:15,m:2.5}},
+{id:5,pn:18,ref:"Psalm 18:29",full:"Want met U loop ik door een bende, en met mijn God spring ik over een muur.",q:{p:"Want met U loop ik door een bende, ...",a:"en met mijn God spring ik over een muur.",w:["en met Uw kracht versla ik duizenden.","en geen vijand kan mij tegenhouden.","en de poorten der hel houden niet stand."]},pu:{t:"speed",n:"Goddelijke Snelheid",d:"Uw voeten worden licht als de wind.",dur:10,m:2}},
+{id:6,pn:27,ref:"Psalm 27:1",full:"De HEERE is mijn Licht en mijn Heil, voor wien zou ik vrezen?",q:{p:"De HEERE is mijn Licht en mijn Heil, ...",a:"voor wien zou ik vrezen?",w:["Hij verlicht mijn pad in de duisternis.","mijn ziel zal in Hem rusten.","Hij zal mij leiden tot het einde."]},pu:{t:"double_damage",n:"Licht des Heils",d:"Dubbele schade.",dur:10,m:2}},
+{id:7,pn:46,ref:"Psalm 46:2",full:"God is ons een Toevlucht en Sterkte; Hij is krachtelijk bevonden een Hulp in benauwdheden.",q:{p:"God is ons een Toevlucht en Sterkte; ...",a:"Hij is krachtelijk bevonden een Hulp in benauwdheden.",w:["daarom zullen wij niet vrezen voor den dood.","Hij zal ons leiden in het dal der schaduw.","Zijn hand redt ons uit alle nood."]},pu:{t:"healing",n:"Toevlucht der Sterkte",d:"Geneest al uw verwondingen.",dur:20,m:1.4}},
+{id:8,pn:46,ref:"Psalm 46:10",full:"Laat af, en weet, dat Ik God ben.",q:{p:"Laat af, en weet, ...",a:"dat Ik God ben.",w:["dat uw vijanden nedervallen.","dat Ik de Alfa en Omega ben.","dat alle volken Mij dienen."]},pu:{t:"freeze",n:"Stilte des Almachtigen",d:"Alle vijanden bevriezen.",dur:5,m:1}},
+{id:9,pn:103,ref:"Psalm 103:3",full:"Die al uw ongerechtigheid vergeeft, die al uw krankheden geneest.",q:{p:"Die al uw ongerechtigheid vergeeft, ...",a:"die al uw krankheden geneest.",w:["die u kroont met heerlijkheid.","die uw ziel verlost van het verderf.","die u sterkte geeft in den strijd."]},pu:{t:"healing",n:"Genezing der Krankheden",d:"Volledig herstel.",dur:1,m:999}},
+{id:10,pn:34,ref:"Psalm 34:7",full:"De Engel des HEEREN legert Zich rondom degenen, die Hem vrezen, en rukt hen uit.",q:{p:"De Engel des HEEREN legert Zich rondom degenen, die Hem vrezen, ...",a:"en rukt hen uit.",w:["en beschermt hen met vlammend zwaard.","en voert hen naar veilige oorden.","en verlicht hun pad in de nacht."]},pu:{t:"defense",n:"Legering des Engels",d:"Een Engel beschermt u.",dur:15,m:2}}
+];
+
+// === CONSTANTS ===
+const T=32,W=120,H=20,CW=960,CH=640,GRAV=0.55,MFALL=11;
+const c=document.getElementById('c'),ctx=c.getContext('2d');
+ctx.imageSmoothingEnabled=false;
+
+// === 16-BIT PALETTE ===
+const PAL=[
+  null,           // 0 = transparant
+  '#c9a86c',      // 1 = goud
+  '#f0d9a0',      // 2 = goud helder
+  '#5c4535',      // 3 = harnas donker
+  '#7a6048',      // 4 = harnas midden
+  '#9a7a5a',      // 5 = harnas licht
+  '#d4a574',      // 6 = huid
+  '#a07850',      // 7 = huid schaduw
+  '#7a1a1a',      // 8 = cape donker
+  '#9a2a2a',      // 9 = cape midden
+  '#cc4444',      // 10 = rood helder
+  '#6b4226',      // 11 = bruin (laarzen)
+  '#3d2419',      // 12 = bruin donker
+  '#e8e0d0',      // 13 = bot wit
+  '#b8b0a0',      // 14 = bot schaduw
+  '#111111',      // 15 = zwart
+  '#5a2a6a',      // 16 = paars
+  '#8040a0',      // 17 = paars licht
+  '#8899bb',      // 18 = geest blauw
+  '#aabbdd',      // 19 = geest licht
+  '#334466',      // 20 = geest donker
+  '#ffcc44',      // 21 = kaars geel
+  '#ff8800',      // 22 = kaars oranje
+  '#4060a0',      // 23 = blauw
+  '#2a3a6a',      // 24 = blauw donker
+  '#2a5a2a',      // 25 = groen
+  '#40804a',      // 26 = groen licht
+  '#4a3525',      // 27 = steen donker
+  '#5c4535',      // 28 = steen midden
+  '#6e5545',      // 29 = steen licht
+  '#8b5a2b',      // 30 = baksteen
+  '#a06b35',      // 31 = hout
+  '#333333',      // 32 = donkergrijs
+  '#555555',      // 33 = middengrijs
+  '#888888',      // 34 = lichtgrijs
+  '#cc8833',      // 35 = oranje bruin
+  '#ffffff',      // 36 = wit
+  '#dd2222',      // 37 = rood fel
+  '#660000',      // 38 = rood heel donker
+  '#aa5500',      // 39 = bruin oranje
+  '#ddc090',      // 40 = perkament licht
+  '#bb9060',      // 41 = perkament donker
+];
+
+// === SPRITE RENDERER (CACHED) ===
+const spriteCache = new Map();
+function drawSprite(ctx, grid, x, y, scale, flipX=false, alpha=1){
+  let gridMap = spriteCache.get(grid);
+  if(!gridMap){ gridMap = new Map(); spriteCache.set(grid, gridMap); }
+  const key = scale + '_' + flipX + '_' + alpha;
+  let cvs = gridMap.get(key);
+  if(!cvs){
+    cvs = document.createElement('canvas');
+    const rows=grid.length, cols=grid[0].length;
+    cvs.width = cols * scale; cvs.height = rows * scale;
+    const xctx = cvs.getContext('2d');
+    if(alpha!==1) xctx.globalAlpha = alpha;
+    for(let row=0;row<rows;row++){
+      for(let col=0;col<cols;col++){
+        const ci=grid[row][flipX?(cols-1-col):col];
+        if(!ci||ci===0) continue;
+        const color=PAL[ci];
+        if(!color) continue;
+        xctx.fillStyle=color;
+        xctx.fillRect(col*scale, row*scale, scale, scale);
+      }
+    }
+    gridMap.set(key, cvs);
+  }
+  ctx.drawImage(cvs, Math.floor(x), Math.floor(y));
+}
+
+// =====================================================
+// === 16-BIT SPRITE DEFINITIES ===
+// =====================================================
+
+// --- SPELER SPRITES (18x24 pixels, scale=2 = 36x48 canvas px) ---
+// Kleur index referentie:
+// 1=goud, 2=goud_helder, 3=harnas_donker, 4=harnas_mid, 5=harnas_licht
+// 6=huid, 7=huid_schaduw, 8=cape_donker, 9=cape_mid, 11=laars_bruin
+// 12=bruin_donker, 15=zwart, 21=goud_kaars
+
+const P_IDLE_0 = [
+  // Ridder idle frame 0 (18 kolommen x 24 rijen)
+  [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0], // helm top
+  [0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 1, 1, 0, 0, 0, 0, 0], // helm
+  [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0], // helm breed
+  [0, 0, 1, 6, 6, 6, 6, 6, 6, 6, 6, 6, 1, 0, 0, 0, 0, 0], // gezicht
+  [0, 0, 1, 6, 15,6, 6, 6, 6, 15,6, 6, 1, 0, 0, 0, 0, 0], // ogen
+  [0, 0, 1, 6, 6, 6, 6, 6, 6, 6, 6, 6, 1, 0, 0, 0, 0, 0], // wang
+  [0, 9, 5, 4, 5, 5, 5, 5, 5, 5, 5, 4, 5, 9, 0, 0, 0, 0], // schouders
+  [0, 9, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 9, 0, 0, 0, 0], // borst boven
+  [0, 8, 4, 4, 4, 1, 1, 4, 1, 4, 4, 4, 4, 8, 0, 0, 0, 0], // borst kruis
+  [0, 8, 4, 4, 1, 1, 1, 1, 1, 1, 4, 4, 4, 8, 0, 0, 0, 0], // borst kruis
+  [0, 8, 4, 4, 4, 4, 1, 4, 1, 4, 4, 4, 4, 8, 0, 0, 0, 0], // borst midden
+  [0, 8, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 8, 0, 0, 0, 0], // buik
+  [0, 8, 11,11,11,11,11,11,11,11,11,11,11,8, 0, 0, 0, 0], // riem
+  [0, 0, 8, 4, 4, 4, 0, 0, 4, 4, 4, 4, 8, 0, 0, 0, 0, 0], // rok/split
+  [0, 0, 8, 4, 4, 0, 0, 0, 0, 4, 4, 4, 8, 0, 0, 0, 0, 0], // dijen bovenst
+  [0, 0, 0, 4, 4, 0, 0, 0, 0, 4, 4, 0, 0, 0, 0, 0, 0, 0], // dijen
+  [0, 0, 0, 3, 4, 0, 0, 0, 0, 4, 3, 0, 0, 0, 0, 0, 0, 0], // knieen
+  [0, 0, 0, 3, 4, 0, 0, 0, 0, 4, 3, 0, 0, 0, 0, 0, 0, 0], // schenen
+  [0, 0, 0, 3, 4, 0, 0, 0, 0, 4, 3, 0, 0, 0, 0, 0, 0, 0], // schenen
+  [0, 0, 0, 3, 3, 0, 0, 0, 0, 3, 3, 0, 0, 0, 0, 0, 0, 0], // enkels
+  [0, 0, 11,11,11,0, 0, 0, 0,11,11,11,0, 0, 0, 0, 0, 0], // laarzen
+  [0, 0,12,11,11,0, 0, 0, 0,11,11,12,0, 0, 0, 0, 0, 0], // laars bodem
+  [0,12,11,11,11,0, 0, 0, 0,11,11,11,12,0, 0, 0, 0, 0], // laars punt
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+];
+
+const P_IDLE_1 = [
+  [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 1, 1, 0, 0, 0, 0, 0],
+  [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+  [0, 0, 1, 6, 6, 6, 6, 6, 6, 6, 6, 6, 1, 0, 0, 0, 0, 0],
+  [0, 0, 1, 6, 15,6, 6, 6, 6, 15,6, 6, 1, 0, 0, 0, 0, 0],
+  [0, 0, 1, 6, 6, 6, 7, 7, 6, 6, 6, 6, 1, 0, 0, 0, 0, 0], // iets zachter glimlach
+  [0, 9, 5, 4, 5, 5, 5, 5, 5, 5, 5, 4, 5, 9, 0, 0, 0, 0],
+  [0, 9, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 9, 0, 0, 0, 0],
+  [0, 8, 4, 4, 4, 1, 1, 4, 1, 4, 4, 4, 4, 8, 0, 0, 0, 0],
+  [0, 8, 4, 4, 1, 1, 1, 1, 1, 1, 4, 4, 4, 8, 0, 0, 0, 0],
+  [0, 8, 4, 4, 4, 4, 1, 4, 1, 4, 4, 4, 4, 8, 0, 0, 0, 0],
+  [0, 8, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 8, 0, 0, 0, 0],
+  [0, 8, 11,11,11,11,11,11,11,11,11,11,11,8, 0, 0, 0, 0],
+  [0, 0, 8, 4, 4, 4, 0, 0, 4, 4, 4, 4, 8, 0, 0, 0, 0, 0],
+  [0, 0, 8, 4, 4, 0, 0, 0, 0, 4, 4, 4, 8, 0, 0, 0, 0, 0],
+  [0, 0, 0, 4, 4, 0, 0, 0, 0, 4, 4, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 3, 4, 0, 0, 0, 0, 4, 3, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 3, 4, 0, 0, 0, 0, 4, 3, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 3, 4, 0, 0, 0, 0, 4, 3, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 3, 3, 0, 0, 0, 0, 3, 3, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 11,11,11,0, 0, 0, 0,11,11,11,0, 0, 0, 0, 0, 0],
+  [0, 0,12,11,11,0, 0, 0, 0,11,11,12,0, 0, 0, 0, 0, 0],
+  [0,12,11,11,11,0, 0, 0, 0,11,11,11,12,0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+];
+
+// Walk frames (4 frames)
+const P_WALK_0 = [
+  [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 1, 1, 0, 0, 0, 0, 0],
+  [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+  [0, 0, 1, 6, 6, 6, 6, 6, 6, 6, 6, 6, 1, 0, 0, 0, 0, 0],
+  [0, 0, 1, 6, 15,6, 6, 6, 6, 15,6, 6, 1, 0, 0, 0, 0, 0],
+  [0, 0, 1, 6, 6, 6, 6, 6, 6, 6, 6, 6, 1, 0, 0, 0, 0, 0],
+  [0, 9, 5, 4, 5, 5, 5, 5, 5, 5, 5, 4, 5, 9, 0, 0, 0, 0],
+  [0, 9, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 9, 0, 0, 0, 0],
+  [0, 8, 4, 4, 4, 1, 1, 4, 1, 4, 4, 4, 4, 8, 0, 0, 0, 0],
+  [0, 8, 4, 4, 1, 1, 1, 1, 1, 1, 4, 4, 4, 8, 0, 0, 0, 0],
+  [0, 8, 4, 4, 4, 4, 1, 4, 1, 4, 4, 4, 4, 8, 0, 0, 0, 0],
+  [0, 8, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 8, 0, 0, 0, 0],
+  [0, 8, 11,11,11,11,11,11,11,11,11,11,11,8, 0, 0, 0, 0],
+  // Benen: linker been voor, rechter been achter
+  [0, 0, 0, 0, 4, 4, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 4, 4, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 3, 4, 0, 0, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 3, 3, 4, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 3, 4, 4, 0, 11,11,0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 3, 4, 4, 0, 11,11,0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0,11,11,0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0,11,11,11,0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0,12,11,0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+];
+
+const P_WALK_1 = [
+  [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 1, 1, 0, 0, 0, 0, 0],
+  [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+  [0, 0, 1, 6, 6, 6, 6, 6, 6, 6, 6, 6, 1, 0, 0, 0, 0, 0],
+  [0, 0, 1, 6, 15,6, 6, 6, 6, 15,6, 6, 1, 0, 0, 0, 0, 0],
+  [0, 0, 1, 6, 6, 6, 6, 6, 6, 6, 6, 6, 1, 0, 0, 0, 0, 0],
+  [0, 9, 5, 4, 5, 5, 5, 5, 5, 5, 5, 4, 5, 9, 0, 0, 0, 0],
+  [0, 9, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 9, 0, 0, 0, 0],
+  [0, 8, 4, 4, 4, 1, 1, 4, 1, 4, 4, 4, 4, 8, 0, 0, 0, 0],
+  [0, 8, 4, 4, 1, 1, 1, 1, 1, 1, 4, 4, 4, 8, 0, 0, 0, 0],
+  [0, 8, 4, 4, 4, 4, 1, 4, 1, 4, 4, 4, 4, 8, 0, 0, 0, 0],
+  [0, 8, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 8, 0, 0, 0, 0],
+  [0, 8, 11,11,11,11,11,11,11,11,11,11,11,8, 0, 0, 0, 0],
+  // Benen: beide benen naast elkaar (midden-stap)
+  [0, 0, 0, 4, 4, 4, 0, 0, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 4, 4, 0, 0, 0, 0, 4, 4, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 3, 4, 0, 0, 0, 0, 4, 3, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 3, 4, 0, 0, 0, 0, 4, 3, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 3, 4, 0, 0, 0, 0, 4, 3, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 3, 3, 0, 0, 0, 0, 3, 3, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 11,11,11,0, 0, 0, 0,11,11,11,0, 0, 0, 0, 0, 0],
+  [0, 0,12,11,11,0, 0, 0, 0,11,11,12,0, 0, 0, 0, 0, 0],
+  [0,12,11,11,0, 0, 0, 0, 0, 0,11,11,12,0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+];
+
+const P_WALK_2 = [ // rechter been voor
+  [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 1, 1, 0, 0, 0, 0, 0],
+  [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+  [0, 0, 1, 6, 6, 6, 6, 6, 6, 6, 6, 6, 1, 0, 0, 0, 0, 0],
+  [0, 0, 1, 6, 15,6, 6, 6, 6, 15,6, 6, 1, 0, 0, 0, 0, 0],
+  [0, 0, 1, 6, 6, 6, 6, 6, 6, 6, 6, 6, 1, 0, 0, 0, 0, 0],
+  [0, 9, 5, 4, 5, 5, 5, 5, 5, 5, 5, 4, 5, 9, 0, 0, 0, 0],
+  [0, 9, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 9, 0, 0, 0, 0],
+  [0, 8, 4, 4, 4, 1, 1, 4, 1, 4, 4, 4, 4, 8, 0, 0, 0, 0],
+  [0, 8, 4, 4, 1, 1, 1, 1, 1, 1, 4, 4, 4, 8, 0, 0, 0, 0],
+  [0, 8, 4, 4, 4, 4, 1, 4, 1, 4, 4, 4, 4, 8, 0, 0, 0, 0],
+  [0, 8, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 8, 0, 0, 0, 0],
+  [0, 8, 11,11,11,11,11,11,11,11,11,11,11,8, 0, 0, 0, 0],
+  [0, 0, 0, 4, 0, 0, 0, 0, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 3, 0, 0, 0, 0, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 3, 3, 0, 0, 3, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 3, 0, 0, 3, 3, 4, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0,11,11,0, 0, 3, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0,11,11,0, 3, 4, 4, 3, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0,11,11,0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0,11,11,11,0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0,12,11,0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+];
+
+// Jump frame
+const P_JUMP = [
+  [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 1, 1, 0, 0, 0, 0, 0],
+  [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+  [0, 0, 1, 6, 6, 6, 6, 6, 6, 6, 6, 6, 1, 0, 0, 0, 0, 0],
+  [0, 0, 1, 6, 15,6, 6, 6, 6, 15,6, 6, 1, 0, 0, 0, 0, 0],
+  [0, 0, 1, 6, 6, 6, 6, 6, 6, 6, 6, 6, 1, 0, 0, 0, 0, 0],
+  [0, 9, 5, 4, 5, 5, 5, 5, 5, 5, 5, 4, 5, 9, 0, 0, 0, 0],
+  [0, 9, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 9, 0, 0, 0, 0],
+  [0, 8, 4, 4, 4, 1, 1, 4, 1, 4, 4, 4, 4, 8, 0, 0, 0, 0],
+  [0, 8, 4, 4, 1, 1, 1, 1, 1, 1, 4, 4, 4, 8, 0, 0, 0, 0],
+  [0, 8, 4, 4, 4, 4, 1, 4, 1, 4, 4, 4, 4, 8, 0, 0, 0, 0],
+  [0, 8, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 8, 0, 0, 0, 0],
+  [0, 8, 11,11,11,11,11,11,11,11,11,11,11,8, 0, 0, 0, 0],
+  // Benen gebogen omhoog
+  [0, 0, 3, 4, 4, 3, 0, 0, 3, 4, 4, 3, 0, 0, 0, 0, 0, 0],
+  [0, 3, 3, 4, 3, 3, 0, 0, 3, 3, 4, 3, 3, 0, 0, 0, 0, 0],
+  [0,11,11,11,11,0, 0, 0, 0,11,11,11,11,0, 0, 0, 0, 0],
+  [0, 0,12,12, 0, 0, 0, 0, 0, 0,12,12, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+];
+
+// Hurt frame
+const P_HURT = [
+  [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 1, 1, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 1, 6, 6, 6, 6, 6, 6, 6, 1, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 1, 6, 37,6, 6, 6, 37,6, 1, 0, 0, 0, 0, 0, 0], // X ogen
+  [0, 0, 0, 1, 6, 6, 6, 7, 7, 6, 6, 1, 0, 0, 0, 0, 0, 0],
+  [0, 0, 9, 5, 4, 5, 5, 5, 5, 5, 4, 5, 9, 0, 0, 0, 0, 0],
+  [0, 0, 9, 4, 4, 4, 4, 4, 4, 4, 4, 4, 9, 0, 0, 0, 0, 0],
+  [0, 0, 8, 4, 4, 4, 1, 4, 1, 4, 4, 4, 8, 0, 0, 0, 0, 0],
+  [0, 0, 8, 4, 4, 1, 1, 1, 1, 1, 4, 4, 8, 0, 0, 0, 0, 0],
+  [0, 0, 8, 4, 4, 4, 4, 4, 4, 4, 4, 4, 8, 0, 0, 0, 0, 0],
+  [0, 0, 8, 4, 4, 4, 4, 4, 4, 4, 4, 4, 8, 0, 0, 0, 0, 0],
+  [0, 0, 8,11,11,11,11,11,11,11,11,11, 8, 0, 0, 0, 0, 0],
+  [0, 0, 0, 4, 4, 4, 0, 0, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 3, 4, 4, 0, 0, 4, 3, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 3, 3, 4, 0, 0, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 3,11, 0, 0,11,11, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0,11,11, 0, 0, 0,11,12, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0,12,12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+];
+
+// Attack frame (with whip extended)
+const P_ATK = [
+  [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 1, 1, 0, 0, 0, 0, 0],
+  [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+  [0, 0, 1, 6, 6, 6, 6, 6, 6, 6, 6, 6, 1, 0, 0, 0, 0, 0],
+  [0, 0, 1, 6, 15,6, 6, 6, 6, 6, 15,6, 1, 0, 0, 0, 0, 0], // ogen gefocust
+  [0, 0, 1, 6, 6, 6, 6, 6, 6, 6, 6, 6, 1, 0, 0, 0, 0, 0],
+  [0, 9, 5, 4, 5, 5, 5, 5, 5, 5, 5, 4, 5, 9, 0, 0, 0, 0],
+  [0, 9, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 9, 0, 0, 0, 0],
+  [0, 8, 4, 4, 4, 1, 1, 4, 1, 4, 4, 4, 4, 8, 0, 0, 0, 0],
+  [0, 8, 4, 4, 1, 1, 1, 1, 1, 1, 4, 4, 4, 8, 0, 0, 0, 0],
+  // Aanvalsarm uitgestrekt naar rechts
+  [0, 8, 4, 4, 4, 4, 1, 4, 1, 4, 5, 4, 5, 4, 5, 4, 6, 0],
+  [0, 8, 4, 4, 4, 4, 4, 4, 4, 4, 5, 4, 4, 4, 5, 6, 6, 0],
+  [0, 8, 11,11,11,11,11,11,11,11,11,11,11,8, 0, 0, 0, 0],
+  [0, 0, 0, 4, 4, 4, 0, 0, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 4, 4, 0, 0, 0, 0, 4, 4, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 3, 4, 0, 0, 0, 0, 4, 3, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 3, 4, 0, 0, 0, 0, 4, 3, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 3, 4, 0, 0, 0, 0, 4, 3, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 3, 3, 0, 0, 0, 0, 3, 3, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 11,11,11,0, 0, 0, 0,11,11,11,0, 0, 0, 0, 0, 0],
+  [0, 0,12,11,11,0, 0, 0, 0,11,11,12,0, 0, 0, 0, 0, 0],
+  [0,12,11,11,0, 0, 0, 0, 0, 0,11,11,12,0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+];
+
+// Dead/crouch frame
+const P_DEAD = [
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 1, 6, 6, 6, 1, 0, 6, 6, 6, 1, 8, 8, 4, 4, 0, 0, 0],
+  [0, 1, 37,6,37,1, 0, 6, 37,6, 1, 8, 4, 4, 4, 0, 0, 0],
+  [0, 1, 6, 7, 6, 1, 0, 6, 6, 6, 1, 8, 11,11,11,0, 0, 0],
+  [0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+  [0, 9, 9, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0, 0, 0, 0],
+  [0, 0,11,11,11,11,11,11,11,11,11,11,0, 0, 0, 0, 0, 0],
+  [0, 0, 3, 3, 4, 4, 4, 4, 4, 4, 3, 3, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 3, 3, 4, 4, 4, 4, 3, 3, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0,11,11, 0, 0, 0, 0,11,11, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0,12,12, 0, 0, 0, 0, 0, 0,12,12, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+];
+
+const PLAYER_FRAMES = {
+  idle: [P_IDLE_0, P_IDLE_1],
+  walk: [P_WALK_0, P_WALK_1, P_WALK_2, P_WALK_1],
+  jump: [P_JUMP],
+  fall: [P_JUMP],
+  hurt: [P_HURT],
+  attack: [P_ATK],
+  dead: [P_DEAD],
+};
+
+// --- SKELETON SPRITES (14x18 pixels) ---
+const SK_WALK_0 = [
+  [0, 0, 0,13,13,13,13,13,0, 0, 0, 0, 0, 0],
+  [0, 0,13,13,13,13,13,13,13,0, 0, 0, 0, 0],
+  [0, 0,13,15,15,13,15,15,13,0, 0, 0, 0, 0], // ogen
+  [0, 0,13,37,13,13,13,37,13,0, 0, 0, 0, 0], // rode ogen
+  [0, 0,13,13,15,13,15,13,13,0, 0, 0, 0, 0], // neus
+  [0, 0,13,14,14,14,14,14,13,0, 0, 0, 0, 0], // kaak
+  [0, 0,13,13,13,13,13,13,13,0, 0, 0, 0, 0], // tanden
+  [0, 0, 0,13,13,13,13,13,0, 0, 0, 0, 0, 0],
+  [0,13, 0,13,13,13,13,13,0,13, 0, 0, 0, 0], // armen
+  [0,14, 0, 0,14,14,14,0, 0,14, 0, 0, 0, 0], // ribben
+  [0,13, 0, 0,14,14,14,0, 0,13, 0, 0, 0, 0],
+  [0, 0,13, 0,14,14,14,0,13, 0, 0, 0, 0, 0],
+  [0, 0,14, 0, 0,14,0, 0,14, 0, 0, 0, 0, 0],
+  // Benen: afwisselend
+  [0, 0, 0,13, 0, 0, 0,13, 0, 0, 0, 0, 0, 0],
+  [0, 0,13,13, 0, 0,13,13, 0, 0, 0, 0, 0, 0],
+  [0, 0,13,14, 0, 0,13,14, 0, 0, 0, 0, 0, 0],
+  [0,14,14, 0, 0, 0, 0,14,14, 0, 0, 0, 0, 0],
+  [0,14, 0, 0, 0, 0, 0, 0,14, 0, 0, 0, 0, 0],
+];
+
+const SK_WALK_1 = [
+  [0, 0, 0,13,13,13,13,13,0, 0, 0, 0, 0, 0],
+  [0, 0,13,13,13,13,13,13,13,0, 0, 0, 0, 0],
+  [0, 0,13,15,15,13,15,15,13,0, 0, 0, 0, 0],
+  [0, 0,13,37,13,13,13,37,13,0, 0, 0, 0, 0],
+  [0, 0,13,13,15,13,15,13,13,0, 0, 0, 0, 0],
+  [0, 0,13,14,14,14,14,14,13,0, 0, 0, 0, 0],
+  [0, 0,13,13,13,13,13,13,13,0, 0, 0, 0, 0],
+  [0, 0, 0,13,13,13,13,13,0, 0, 0, 0, 0, 0],
+  [0,13, 0,13,13,13,13,13,0,13, 0, 0, 0, 0],
+  [0,14, 0, 0,14,14,14,0, 0,14, 0, 0, 0, 0],
+  [0, 0,13, 0,14,14,14,0,13, 0, 0, 0, 0, 0],
+  [0, 0,14, 0,14,14,14,0,14, 0, 0, 0, 0, 0],
+  [0, 0, 0,14, 0,14,0,14, 0, 0, 0, 0, 0, 0],
+  [0, 0,13,13, 0, 0,13,13, 0, 0, 0, 0, 0, 0],
+  [0,13,13, 0, 0, 0, 0,13,13, 0, 0, 0, 0, 0],
+  [0,14,14, 0, 0, 0, 0,14,14, 0, 0, 0, 0, 0],
+  [0, 0,14,14, 0, 0,14,14, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+];
+
+const SK_THROW = [
+  [0, 0, 0,13,13,13,13,13,0, 0, 0, 0, 0, 0],
+  [0, 0,13,13,13,13,13,13,13,0, 0, 0, 0, 0],
+  [0, 0,13,15,15,13,15,15,13,0, 0, 0, 0, 0],
+  [0, 0,13,37,13,13,13,37,13,0, 0, 0, 0, 0],
+  [0, 0,13,13,15,13,15,13,13,0, 0, 0, 0, 0],
+  [0, 0,13,14,14,14,14,14,13,0, 0, 0, 0, 0],
+  [0, 0,13,13,13,13,13,13,13,0, 0, 0, 0, 0],
+  [0, 0, 0,13,13,13,13,13,0, 0, 0, 0, 0, 0],
+  // Arm uitgestoken voor gooien
+  [0, 0, 0,13,13,13,13,14,14,14,13,13,14,0], // arm uitgestrekt
+  [0, 0, 0, 0,14,14,14,0, 0, 0, 0, 0, 0, 0],
+  [0, 0,13, 0,14,14,14,0, 0, 0, 0, 0, 0, 0],
+  [0, 0,14, 0,14,14,14,0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0,14, 0,14,0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0,13, 0, 0, 0,13, 0, 0, 0, 0, 0, 0],
+  [0, 0,13,13, 0, 0,13,13, 0, 0, 0, 0, 0, 0],
+  [0, 0,13,14, 0, 0,13,14, 0, 0, 0, 0, 0, 0],
+  [0,14,14, 0, 0, 0, 0,14,14, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+];
+
+const SKEL_FRAMES = {
+  walk: [SK_WALK_0, SK_WALK_1],
+  throw: [SK_THROW],
+};
+
+// --- BAT SPRITES (16x10 pixels) ---
+const BAT_0 = [
+  [0,16, 0, 0, 0, 0,16,17,16, 0, 0, 0, 0, 0,16, 0],
+  [0,16,16, 0, 0,16,16,17,16,16, 0, 0, 0,16,16, 0],
+  [0,16,16,16,16,16,17,17,17,16,16,16,16,16,16, 0],
+  [0,16,16,16,16,17,17,17,17,17,16,16,16,16, 0, 0],
+  [0, 0,16,17,17,17,15,37,15,17,17,17,17, 0, 0, 0], // lichaam met ogen
+  [0, 0, 0,17,17,17,17,17,17,17,17,17, 0, 0, 0, 0], // buik
+  [0, 0, 0, 0,16,17,36,36,36,17,16, 0, 0, 0, 0, 0], // tanden
+  [0, 0, 0, 0, 0,16,16, 0,16,16, 0, 0, 0, 0, 0, 0], // pootjes
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+];
+
+const BAT_1 = [
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0,16, 0, 0, 0, 0, 0, 0, 0,16, 0, 0, 0, 0],
+  [0, 0,16,16,16, 0, 0, 0, 0, 0,16,16,16, 0, 0, 0],
+  [0,16,16,16,16,16, 0, 0, 0,16,16,16,16,16, 0, 0],
+  [0,16,16,16,16,16,17,16,17,16,16,16,16,16, 0, 0],
+  [0, 0,16,17,17,17,15,37,15,17,17,17,16, 0, 0, 0],
+  [0, 0, 0,17,17,17,17,17,17,17,17,17, 0, 0, 0, 0],
+  [0, 0, 0, 0,16,17,36,36,36,17,16, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0,16,16, 0,16,16, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+];
+
+const BAT_FRAMES = [BAT_0, BAT_1];
+
+// --- GHOST SPRITES (14x18 pixels) ---
+const GH_0 = [
+  [0, 0, 0, 0,19,19,19,19,19, 0, 0, 0, 0, 0],
+  [0, 0, 0,19,19,19,19,19,19,19, 0, 0, 0, 0],
+  [0, 0,18,18,18,19,19,19,18,18,18, 0, 0, 0],
+  [0, 0,18,18,18,18,19,18,18,18,18, 0, 0, 0],
+  [0, 0,18,20,15,18,18,18,20,15,18, 0, 0, 0], // ogen
+  [0, 0,18,23,23,18,18,18,23,23,18, 0, 0, 0], // ogen gloed
+  [0, 0,18,18,18,18,18,18,18,18,18, 0, 0, 0],
+  [0, 0,18,18,18,20,20,20,18,18,18, 0, 0, 0], // mond
+  [0, 0,18,18,18,18,18,18,18,18,18, 0, 0, 0],
+  [0, 0,18,18,18,18,18,18,18,18,18, 0, 0, 0],
+  [0, 0,20,18,18,18,18,18,18,18,20, 0, 0, 0],
+  [0,18,20,18,18,18,18,18,18,18,20,18, 0, 0],
+  [0,19,20,19,18,18,18,18,18,19,20,19, 0, 0],
+  [0, 0,19,19,19,18,18,18,19,19,19, 0, 0, 0],
+  [0, 0, 0,19,19,19,18,19,19,19, 0, 0, 0, 0],
+  [0, 0, 0, 0,19,19,19,19,19, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0,19,19,19, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+];
+
+const GH_1 = [
+  [0, 0, 0, 0,19,19,19,19,19, 0, 0, 0, 0, 0],
+  [0, 0, 0,19,19,19,19,19,19,19, 0, 0, 0, 0],
+  [0, 0,18,18,18,19,19,19,18,18,18, 0, 0, 0],
+  [0, 0,18,18,18,18,19,18,18,18,18, 0, 0, 0],
+  [0, 0,18,20,15,18,18,18,20,15,18, 0, 0, 0],
+  [0, 0,18,23,23,18,18,18,23,23,18, 0, 0, 0],
+  [0, 0,18,18,18,18,18,18,18,18,18, 0, 0, 0],
+  [0, 0,18,18,18,20,20,20,18,18,18, 0, 0, 0],
+  [0, 0,18,18,18,18,18,18,18,18,18, 0, 0, 0],
+  [0, 0,18,18,18,18,18,18,18,18,18, 0, 0, 0],
+  [0,18,20,18,18,18,18,18,18,18,20,18, 0, 0], // golving onderkant
+  [0,19,19,19,18,18,18,18,18,19,19,19, 0, 0],
+  [0, 0,19,20,19,18,18,18,19,20,19, 0, 0, 0],
+  [0, 0, 0,19,19,19,18,19,19,19, 0, 0, 0, 0],
+  [0, 0, 0, 0,19,19,19,19,19, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0,19,20,19, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0,20, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+];
+
+const GH_2 = [
+  [0, 0, 0, 0,19,19,19,19,19, 0, 0, 0, 0, 0],
+  [0, 0, 0,19,19,19,19,19,19,19, 0, 0, 0, 0],
+  [0, 0,18,18,18,19,19,19,18,18,18, 0, 0, 0],
+  [0, 0,18,18,18,18,19,18,18,18,18, 0, 0, 0],
+  [0, 0,18,20,15,18,18,18,20,15,18, 0, 0, 0],
+  [0, 0,18,23,23,18,18,18,23,23,18, 0, 0, 0],
+  [0, 0,18,18,18,18,18,18,18,18,18, 0, 0, 0],
+  [0, 0,18,18,18,20,20,20,18,18,18, 0, 0, 0],
+  [0, 0,18,18,18,18,18,18,18,18,18, 0, 0, 0],
+  [0, 0,18,18,18,18,18,18,18,18,18, 0, 0, 0],
+  [0,19,20,19,18,18,18,18,18,19,20,19,0, 0],
+  [0,20,19,19,18,18,18,18,18,19,19,20,0, 0],
+  [0,19,19,20,19,18,18,18,19,20,19,19,0, 0],
+  [0, 0, 0,19,19,19,18,19,19,19, 0, 0, 0, 0],
+  [0, 0, 0, 0,19,20,19,20,19, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0,19,20,19, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0,20, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+];
+
+const GHOST_FRAMES = [GH_0, GH_1, GH_2, GH_1];
+
+// --- TILE SPRITES (32x32 pixels) ---
+// Steen tile
+const STONE_TILE_A = (function(){
+  const G=[];
+  for(let r=0;r<32;r++){
+    const row=[];
+    for(let c=0;c<32;c++){
+      // Mortel lijnen
+      if(r===0||r===31||c===0||c===31) row.push(32); // rand donker
+      else if(r===15||r===16) row.push(32); // horizontale mortel
+      else if((r<15&&c===8)||(r<15&&c===24)||(r>16&&c===16)) row.push(32); // verticale mortel
+      else if(r<8) row.push(27); // bovenste laag steen
+      else if(r<16) row.push(28); // midden steen
+      else row.push(29); // onderste steen licht
+    }
+    G.push(row);
+  }
+  // Addeer wat highlights
+  for(let c=1;c<31;c++) G[1][c]=33; // top highlight
+  for(let c=1;c<31;c++) G[2][c]=28;
+  return G;
+})();
+
+const STONE_TILE_B = (function(){
+  const G=[];
+  for(let r=0;r<32;r++){
+    const row=[];
+    for(let c=0;c<32;c++){
+      if(r===0||r===31||c===0||c===31) row.push(32);
+      else if(r===15||r===16) row.push(32);
+      else if((r<15&&c===16)||(r>16&&c===8)||(r>16&&c===24)) row.push(32);
+      else if(r<16) row.push(27);
+      else row.push(28);
+    }
+    G.push(row);
+  }
+  for(let c=1;c<31;c++) G[1][c]=33;
+  return G;
+})();
+
+// Platform tile (hout)
+const PLAT_TILE = (function(){
+  const G=[];
+  for(let r=0;r<8;r++){
+    const row=[];
+    for(let c=0;c<32;c++){
+      if(r===0) row.push(1); // goud rand boven
+      else if(r===1) row.push(2); // goud licht
+      else if(r===7) row.push(12); // donker bodem
+      else if(c%8===0) row.push(12); // plank scheiding
+      else row.push(31); // hout
+    }
+    G.push(row);
+  }
+  return G;
+})();
+
+// Kaars tile (16x16 px deel van 32x32 tile)
+const CANDLE_SPRITE = [
+  [0, 0, 0, 0,21,22,21, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0,22,22,21,22,22, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0,21,21,21, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // pit
+  [0, 0, 0, 0, 1, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0], // kaars top
+  [0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 1, 1, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0], // kandelaar
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+];
+
+// Hart pickup sprite (10x10)
+const HEART_SP = [
+  [0, 10,10, 0, 0, 0, 10,10, 0, 0],
+  [10,10,10,10, 0,10,10,10,10, 0],
+  [10,37,10,10,10,10,10,37,10, 0],
+  [10,10,10,10,10,10,10,10,10, 0],
+  [0, 10,10,10,10,10,10,10, 0, 0],
+  [0, 0, 10,10,10,10,10, 0, 0, 0],
+  [0, 0, 0, 10,10,10, 0, 0, 0, 0],
+  [0, 0, 0, 0, 10, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+];
+
+// Scroll pickup sprite (12x14)
+const SCROLL_SP = [
+  [0,40,40,40,40,40,40,40,40,40,40, 0],
+  [1,40,40,40,40,40,40,40,40,40,40, 1],
+  [1,40,40,40,40,40,40,40,40,40,40, 1],
+  [1,40,40,10,40,10,40,10,40,40,40, 1],
+  [1,40,40,40,10,40,10,40,40,40,40, 1],
+  [1,40,40,10,40,10,40,10,40,40,40, 1],
+  [1,40,40,40,11,40,11,40,40,40,40, 1], // kruis
+  [1,40,40,11,11,11,11,11,40,40,40, 1],
+  [1,40,40,40,11,40,11,40,40,40,40, 1],
+  [1,40,40,40,40,40,40,40,40,40,40, 1],
+  [1,40,40,40,40,40,40,40,40,40,40, 1],
+  [0,41,41,41,41,41,41,41,41,41,41, 0],
+  [0, 0,41, 0, 0, 0, 0, 0, 0,41, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+];
+
+// Heilig water projectile (8x8)
+const HW_SP = [
+  [0, 0,23,23, 0, 0, 0, 0],
+  [0,23,19,19,23, 0, 0, 0],
+  [23,19,36,19,19,23, 0, 0],
+  [23,19,19,19,19,23, 0, 0],
+  [23,19,23,23,19,23, 0, 0],
+  [0,23,23, 0,23, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0],
+];
+
+// Bot projectile (8x8)
+const BONE_SP = [
+  [0,13,14, 0, 0, 0, 0, 0],
+  [14,13,13,14, 0, 0, 0, 0],
+  [0,14,13,13,14, 0, 0, 0],
+  [0, 0,14,13,13,14, 0, 0],
+  [0, 0, 0,14,13,13, 0, 0],
+  [0, 0, 0, 0,13,14, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0],
+];
+
+// === COLORS (behouden voor particle etc) ===
+const C={
+  bg:'#0d1b2a',bg2:'#1a0f08',stone:'#4a3525',stone2:'#5c4535',stone3:'#6e5545',
+  brick:'#6b4226',brick2:'#8b5a2b',wood:'#a06b35',
+  gold:'#c9a86c',gold2:'#f0d9a0',gold3:'#fff4d6',
+  red:'#8b2a2a',red2:'#b04040',green:'#2a5a2a',green2:'#40804a',
+  blue:'#2a3a6a',blue2:'#4060a0',flesh:'#d4a574',dark:'#0a0a0a',
+  purple:'#5a2a6a',purple2:'#8040a0',orange:'#cd6620',white:'#e8dcc8',
+  sky1:'#0d1b2a',sky2:'#1b2d45',candle:'#ffcc44',candle2:'#ff8800',
+};
+
+// === STATE ===
+let state='menu', keys={}, kp={}, cam={x:0,y:0}, shake=0, flash=0, flashC='#fff', frame=0, score=0;
+let tiles=[], enemies=[], particles=[], projectiles=[], pickups=[], powerups=[];
+let learned=new Set(), attempts={};
+let player=null, quizData=null;
+let moon={glow:0,targetGlow:0,hue:0,targetHue:0,pulse:0,rings:0,flash:0};
+
+// === INPUT ===
+window.addEventListener('keydown',e=>{
+  if(bindingKey) {
+    e.preventDefault();
+    BINDINGS[bindingKey] = e.code;
+    bindingKey = null;
+    renderSettings();
+    return;
+  }
+  keys[e.code]=true;kp[e.code]=true;
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
+});
+window.addEventListener('keyup',e=>{keys[e.code]=false;e.preventDefault()});
+function kd(c){return!!keys[c]}function kwp(c){return!!kp[c]}
+
+// === UTIL ===
+function lerp(a,b,t){return a+(b-a)*t}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+function rr(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+function rrc(arr){return arr[Math.floor(Math.random()*arr.length)]}
+function ro(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y}
+function sp(x,y,n,c1,c2){for(let i=0;i<n;i++)particles.push({x,y,vx:(Math.random()-.5)*4,vy:(Math.random()-.5)*4-2,life:.3+Math.random()*.7,sz:2+Math.random()*3,c:Math.random()>.5?c1:c2})}
+
+// === LEVEL GEN ===
+function genLevel(){
+  tiles=[];
+  for(let y=0;y<H;y++){tiles[y]=[];for(let x=0;x<W;x++)tiles[y][x]=0;}
+  for(let x=0;x<W;x++){tiles[H-1][x]=1;tiles[H-2][x]=1;tiles[0][x]=1;tiles[1][x]=1;}
+  for(let y=0;y<H;y++){tiles[y][0]=1;tiles[y][1]=1;tiles[y][W-1]=1;tiles[y][W-2]=1;}
+  for(let i=0;i<18;i++){
+    let px=rr(4,W-8),py=rr(5,H-5),pw=rr(3,7);
+    for(let x=px;x<px+pw&&x<W-2;x++) tiles[py][x]=2;
+  }
+  for(let i=0;i<6;i++){
+    let bx=rr(6,W-14),by=rr(6,H-6),bw=rr(3,7),bh=rr(1,3);
+    for(let y=by;y<by+bh&&y<H-2;y++)
+      for(let x=bx;x<bx+bw&&x<W-2;x++) tiles[y][x]=1;
+  }
+  for(let i=0;i<3;i++){
+    let gx=rr(10,W-12),gw=rr(2,3);
+    for(let x=gx;x<gx+gw;x++){tiles[H-1][x]=0;tiles[H-2][x]=0;}
+  }
+  for(let i=0;i<10;i++){
+    let cx=rr(5,W-5),cy=rr(4,H-4);
+    if(tiles[cy][cx]===0){
+      let gy=cy;while(gy<H-1&&tiles[gy+1][cx]===0&&tiles[gy+1][cx]!==2)gy++;
+      if(gy<H-2&&(tiles[gy+1][cx]===1||tiles[gy+1][cx]===2)) tiles[gy][cx]=3;
+    }
+  }
+  for(let y=H-5;y<H-2;y++)for(let x=3;x<8;x++) tiles[y][x]=0;
+
+  enemies=[];
+  for(let i=0;i<14;i++){
+    let ex=rr(14,W-14),ey=rr(4,H-5);
+    let gy=ey;while(gy<H-2&&tiles[gy+1][ex]===0)gy++;
+    if(gy<H-2){
+      let tp=Math.random()<.45?'skeleton':Math.random()<.6?'bat':'ghost';
+      enemies.push(mkEnemy(ex*T,gy*T-32,tp));
+    }
+  }
+
+  pickups=[];
+  let avail=PS.filter(p=>!learned.has(p.id));
+  for(let i=0;i<5&&i<avail.length;i++){
+    let px=rr(10,W-10),py=rr(5,H-5);
+    let gy=py;while(gy<H-2&&tiles[gy+1][px]===0&&tiles[gy+1][px]!==2)gy++;
+    if(gy<H-2) pickups.push({x:px*T+8,y:gy*T-14,w:14,h:16,type:'scroll',pid:avail[i].id,bob:Math.random()*6.28});
+  }
+  for(let i=0;i<3;i++){
+    pickups.push({x:rr(8,W-8)*T,y:rr(4,H-5)*T,w:12,h:12,type:'heart',bob:Math.random()*6.28});
+  }
+}
+
+function isSolid(x,y){if(x<0||x>=W||y<0||y>=H)return true;return tiles[y][x]===1;}
+function isPlat(x,y){if(x<0||x>=W||y<0||y>=H)return false;return tiles[y][x]===2;}
+
+// === PLAYER ===
+function mkPlayer(){
+  return{x:4*T,y:(H-4)*T,vx:0,vy:0,w:18,h:34,dir:1,hp:16,maxHp:16,hearts:5,
+    atk:0,whipA:0,whipOn:false,hurt:0,inv:0,onG:false,crouch:false,
+    sub:'holywater',anim:0,at:0,dead:false,capeA:0,
+    walkCycle:0, breathe:0, landSquash:0, wasInAir:false,
+    headBob:0, armSwing:0, capeWave:0, eyeBlink:0, blinkDur:0,
+    torsoLean:0, dustTimer:0,
+    legL:0, legR:0, legLCur:0, legRCur:0,
+    armLAng:0, armRAng:0, armLCur:0, armRCur:0,
+    bodyTilt:0, bodyTiltCur:0,
+    shoulderL:0, shoulderR:0, shLCur:0, shRCur:0,
+    headTilt:0, headTiltCur:0,
+    hipSway:0, hipSwayCur:0,
+    kneeBendL:0, kneeBendR:0, kbLCur:0, kbRCur:0,
+    footAngL:0, footAngR:0, faLCur:0, faRCur:0,
+    prevState:'idle', transTimer:0,
+    whipWindup:0,
+    capePoints:[0,0,0,0],
+  };
+}
+
+function updatePlayer(dt){
+  let p=player;if(!p||p.dead)return;
+  let spd=hasPU('speed')?3.5:2.2, jmp=hasPU('speed')?-10:-8.5;
+  if(p.inv>0)p.inv-=dt;
+  if(p.hurt>0){p.hurt-=dt;p.vx*=.85;p.vy+=GRAV;p.vy=Math.min(p.vy,MFALL);moveEnt(p);return;}
+  if(p.atk>0){p.atk-=dt;p.whipOn=p.atk>.05;if(p.atk<=0){p.whipOn=false;}}
+  p.crouch=kd(BINDINGS.down)&&p.onG&&p.atk<=0;
+  p.h=p.crouch?22:34;
+  if(kd(BINDINGS.left)){p.vx=-spd;p.dir=-1;}
+  else if(kd(BINDINGS.right)){p.vx=spd;p.dir=1;}
+  else p.vx*=.7;
+  if(kwp(BINDINGS.jump)&&p.onG){p.vy=jmp;p.onG=false;}
+  if(kwp(BINDINGS.whip)&&p.atk<=0){
+    p.atk=.28;p.whipOn=true;
+    if(kd(BINDINGS.up))p.whipA=p.dir>0?-90:-90;
+    else if(kd(BINDINGS.down)&&!p.onG)p.whipA=90;
+    else p.whipA=p.dir>0?0:180;
+  }
+  if(kwp(BINDINGS.sub)&&p.hearts>0&&p.sub){
+    p.hearts--;
+    let px=p.x+9,py=p.y+8;
+    projectiles.push({x:px,y:py,vx:p.dir*4,vy:-3,type:'hw',dmg:2,life:2,pl:true,w:8,h:8});
+  }
+  if(kwp(BINDINGS.inv)){showInv();return;}
+  p.vy+=GRAV;p.vy=Math.min(p.vy,MFALL);
+  moveEnt(p);
+  p.onG=false;
+  let by=Math.floor((p.y+p.h+1)/T);
+  for(let tx=Math.floor(p.x/T);tx<=Math.floor((p.x+p.w)/T);tx++){
+    if(isSolid(tx,by)||(isPlat(tx,by)&&p.vy>=0))p.onG=true;
+  }
+  p.at+=dt;if(p.at>.15){p.at=0;p.anim=(p.anim+1)%4;}
+  let moving=Math.abs(p.vx)>.4;
+  let sprintMul=Math.abs(p.vx)/2.2;
+  let curState=p.dead?'dead':p.hurt>0?'hurt':p.atk>0?'attack':p.crouch?'crouch':!p.onG?(p.vy<0?'jump':'fall'):moving?'walk':'idle';
+  if(curState!==p.prevState){p.transTimer=.15;p.prevState=curState;}
+  if(p.transTimer>0) p.transTimer-=dt;
+  if(moving&&p.onG) p.walkCycle+=dt*Math.abs(p.vx)*3.5;
+  else if(p.onG) p.walkCycle*=.85;
+  p.breathe+=dt*2.2;
+  if(!p.onG) p.wasInAir=true;
+  if(p.onG&&p.wasInAir){p.landSquash=.22;p.wasInAir=false;
+    sp(p.x+p.w/2-6,p.y+p.h,5,C.stone2,C.stone3);
+    sp(p.x+p.w/2+6,p.y+p.h,5,C.stone2,C.stone3);}
+  if(p.landSquash>0) p.landSquash-=dt;
+  if(moving&&p.onG){p.dustTimer-=dt;if(p.dustTimer<=0){p.dustTimer=.16;
+    sp(p.x+p.w/2-p.dir*4,p.y+p.h,2,C.stone2,'rgba(110,85,69,0.5)');}}
+  p.capeA=Math.sin(frame*.1)*.15;
+  if(p.y>H*T+64)dmgPlayer(999);
+}
+
+function moveEnt(e){
+  e.x+=e.vx;
+  let tl=Math.floor(e.x/T),tr=Math.floor((e.x+e.w)/T),tt=Math.floor(e.y/T),tb=Math.floor((e.y+e.h-1)/T);
+  for(let ty=tt;ty<=tb;ty++)for(let tx=tl;tx<=tr;tx++){
+    if(isSolid(tx,ty)){if(e.vx>0)e.x=tx*T-e.w-.01;else if(e.vx<0)e.x=(tx+1)*T+.01;e.vx=0;}
+  }
+  e.y+=e.vy;
+  tl=Math.floor(e.x/T);tr=Math.floor((e.x+e.w)/T);tt=Math.floor(e.y/T);tb=Math.floor((e.y+e.h-1)/T);
+  for(let ty=tt;ty<=tb;ty++)for(let tx=tl;tx<=tr;tx++){
+    if(isSolid(tx,ty)){if(e.vy>0){e.y=ty*T-e.h;e.vy=0;}else if(e.vy<0){e.y=(ty+1)*T;e.vy=0;}}
+    if(isPlat(tx,ty)&&e.vy>0){let pt=ty*T;if(e.y+e.h-e.vy<=pt+4){e.y=pt-e.h;e.vy=0;}}
+  }
+}
+
+function dmgPlayer(n){
+  let p=player;if(!p||p.inv>0||p.dead)return;
+  if(hasPU('invincibility'))return;
+  if(hasPU('shield')||hasPU('defense'))n=Math.ceil(n/2);
+  p.hp-=n;p.inv=1.5;p.hurt=.35;p.vy=-4;p.vx=-p.dir*3;
+  shake=.3;flash=.1;flashC='#ff4444';
+  sp(p.x+9,p.y+10,8,C.red,C.red2);
+  if(p.hp<=0){p.hp=0;p.dead=true;state='dead';setTimeout(()=>{
+    document.getElementById('menu').style.display='flex';
+    document.getElementById('menu').innerHTML='<h1 style="color:#b04040">&#x2620; GESTORVEN &#x2620;</h1><p>De duisternis heeft u overwonnen...</p><p>Psalmen geleerd: '+learned.size+'/'+PS.length+'</p><button class="mbtn" onclick="startGame()">&#x25BA; OPNIEUW</button>';
+  },1000);}
+}
+
+function getWhipBox(){
+  let p=player;if(!p||!p.whipOn)return null;
+  let rad=p.whipA*Math.PI/180,len=46*(hasPU('attack')||hasPU('double_damage')?1.4:1);
+  let cx=p.x+p.w/2+Math.cos(rad)*len*.6, cy=p.y+p.h*.3+Math.sin(rad)*len*.6;
+  return{x:cx-15,y:cy-8,w:30,h:16};
+}
+function whipDmg(){let d=3;if(hasPU('attack'))d*=2;if(hasPU('double_damage'))d*=2;return d;}
+
+// === ENEMIES ===
+function mkEnemy(x,y,type){
+  let base={x,y,vx:0,vy:0,w:22,h:30,hp:0,type,dir:1,anim:0,at:0,dead:false,dt:0,fl:0,
+    ps:x-80,pe:x+80,
+    walkCyc:Math.random()*6.28, breathe:Math.random()*6.28,
+    legLa:0,legRa:0,legLC:0,legRC:0,
+    armLa:0,armRa:0,armLC:0,armRC:0,
+    jawAng:0,jawC:0,
+    bodyBob:0,bodyBobC:0,
+    bodyLean:0,bodyLeanC:0,
+    headAng:0,headAngC:0,
+    tailAng:0,tailAngC:0,
+    eyeGlow:0,eyeGlowC:0,
+  };
+  if(type==='skeleton')return{...base,hp:6,dmg:2,spd:.8,tt:2+Math.random()*2};
+  if(type==='bat')return{...base,hp:2,dmg:1,w:18,h:14,spd:2,by:y,ph:Math.random()*6.28,wingAng:0,wingC:0};
+  if(type==='ghost')return{...base,hp:4,dmg:2,w:20,h:26,spd:.6,al:.7,wavePh:Math.random()*6.28};
+  return{...base,hp:4,dmg:1,spd:1};
+}
+
+function updateEnemies(dt){
+  let frozen=hasPU('freeze');
+  let p=player;
+  for(let i=enemies.length-1;i>=0;i--){
+    let e=enemies[i];
+    if(e.dead){e.dt-=dt;if(e.dt<=0)enemies.splice(i,1);continue;}
+    if(e.fl>0)e.fl-=dt;
+    if(frozen)continue;
+    e.at+=dt;if(e.at>.2){e.at=0;e.anim=(e.anim+1)%4;}
+    let dx=p.x-e.x,dy=p.y-e.y,d=Math.sqrt(dx*dx+dy*dy);
+    let onS=Math.abs(e.x-cam.x)<CW+80&&Math.abs(e.y-cam.y)<CH+80;
+    if(!onS)continue;
+    switch(e.type){
+      case'skeleton':
+        if(e.x<=e.ps)e.dir=1;if(e.x>=e.pe)e.dir=-1;
+        e.vx=e.dir*e.spd;e.vy+=GRAV;e.vy=Math.min(e.vy,MFALL);moveEnt(e);
+        e.tt-=dt;
+        if(e.tt<=0&&d<280){e.tt=2+Math.random()*2;let a=Math.atan2(dy,dx);
+          projectiles.push({x:e.x+11,y:e.y+8,vx:Math.cos(a)*3,vy:Math.sin(a)*3-2,type:'bone',dmg:e.dmg,life:2,pl:false,w:7,h:7,ang:0});}
+        break;
+      case'bat':
+        e.ph+=dt*3;e.x+=e.spd*(dx>0?1:-1);e.y=e.by+Math.sin(e.ph)*35;break;
+      case'ghost':
+        if(d<320){e.x+=((dx/d)*e.spd)||0;e.y+=((dy/d)*e.spd)||0;}
+        e.al=.5+Math.sin(frame*.1)*.2;break;
+    }
+    if(!e.dead&&!p.dead&&p.inv<=0&&ro({x:p.x,y:p.y,w:p.w,h:p.h},{x:e.x,y:e.y,w:e.w,h:e.h}))dmgPlayer(e.dmg);
+    e.breathe+=dt*2;e.walkCyc+=dt*Math.abs(e.vx||0)*3;
+  }
+}
+
+function dmgEnemy(e,n){
+  if(e.dead)return;e.hp-=n;e.fl=.12;sp(e.x+e.w/2,e.y+e.h/2,5,C.orange,C.gold);
+  if(e.hp<=0){e.dead=true;e.dt=.4;score+=100;sp(e.x+e.w/2,e.y+e.h/2,12,C.gold,C.orange);
+    if(Math.random()>.7)pickups.push({x:e.x,y:e.y,w:12,h:12,type:'heart',bob:0});}
+}
+
+// === PROJECTILES ===
+function updateProj(dt){
+  let p=player;
+  for(let i=projectiles.length-1;i>=0;i--){
+    let pr=projectiles[i];pr.life-=dt;if(pr.life<=0){projectiles.splice(i,1);continue;}
+    if(pr.type==='hw'){pr.vy+=GRAV*.5;pr.x+=pr.vx;pr.y+=pr.vy;
+      let ty=Math.floor((pr.y+pr.h)/T),tx=Math.floor(pr.x/T);
+      if(ty>=0&&ty<H&&tx>=0&&tx<W&&(isSolid(tx,ty)||isPlat(tx,ty))){
+        pr.vx=0;pr.vy=0;pr.life=Math.min(pr.life,.8);sp(pr.x,pr.y,6,C.blue,C.blue2);}
+    }else{pr.x+=pr.vx;pr.y+=pr.vy;if(pr.ang!==undefined)pr.ang+=12;}
+    if(pr.pl){for(let e of enemies){if(e.dead)continue;
+      if(ro({x:pr.x,y:pr.y,w:pr.w,h:pr.h},{x:e.x,y:e.y,w:e.w,h:e.h})){dmgEnemy(e,pr.dmg);projectiles.splice(i,1);break;}}}
+    else{if(p&&!p.dead&&p.inv<=0&&ro({x:pr.x,y:pr.y,w:pr.w,h:pr.h},{x:p.x,y:p.y,w:p.w,h:p.h})){dmgPlayer(pr.dmg);projectiles.splice(i,1);continue;}}
+    if(pr.x<cam.x-80||pr.x>cam.x+CW+80||pr.y<cam.y-80||pr.y>cam.y+CH+80)projectiles.splice(i,1);
+  }
+}
+
+// === PARTICLES ===
+function updatePart(dt){
+  for(let i=particles.length-1;i>=0;i--){let p=particles[i];p.x+=p.vx;p.y+=p.vy;p.vy+=.1;p.life-=dt;if(p.life<=0)particles.splice(i,1);}
+}
+
+// === PICKUPS ===
+function updatePickups(dt){
+  let p=player;if(!p||p.dead)return;
+  for(let i=pickups.length-1;i>=0;i--){
+    let pk=pickups[i];pk.bob+=dt*2;
+    if(ro({x:p.x,y:p.y,w:p.w,h:p.h},{x:pk.x,y:pk.y-2+Math.sin(pk.bob)*3,w:pk.w,h:pk.h})){
+      if(pk.type==='heart'){p.hp=Math.min(p.hp+2,p.maxHp);sp(pk.x,pk.y,6,C.red,C.red2);}
+      else if(pk.type==='scroll'){triggerQuiz(pk.pid);}
+      pickups.splice(i,1);
+    }
+  }
+}
+
+// === POWERUPS ===
+function hasPU(t){return powerups.some(p=>p.t===t&&p.rem>0);}
+function activatePU(pd){
+  let pu=pd.pu;
+  if(pu.t==='healing'){let h=pu.m>=999?player.maxHp:Math.floor(4*pu.m);player.hp=Math.min(player.hp+h,player.maxHp);sp(player.x+9,player.y+10,12,C.green,C.green2);flash=.2;flashC='#40ff40';}
+  if(pu.t==='freeze'){sp(player.x+9,player.y+10,15,C.blue,C.blue2);}
+  if(pu.dur>1){powerups=powerups.filter(p=>p.t!==pu.t);powerups.push({t:pu.t,n:pu.n,rem:pu.dur,total:pu.dur,ref:pd.ref});}
+}
+function updatePU(dt){for(let i=powerups.length-1;i>=0;i--){powerups[i].rem-=dt;if(powerups[i].rem<=0)powerups.splice(i,1);}}
+
+// === QUIZ ===
+function triggerQuiz(pid){
+  let pd=PS.find(p=>p.id===pid);if(!pd)return;
+  state='quiz';quizData=pd;
+  let box=document.getElementById('qbox');
+  let answers=[pd.q.a,...pd.q.w].sort(()=>Math.random()-.5);
+  box.innerHTML='<h3>&#x1F4DC; Psalmrol gevonden!</h3><div class="ref">'+pd.ref+'</div>'+
+    '<div class="prompt">"'+pd.q.p+'"</div>'+
+    '<p style="color:#8b5a2b;font-size:12px;margin-bottom:10px">Wat is het vervolg van dit vers?</p>'+
+    answers.map((a,i)=>'<button class="qbtn" data-ans="'+i+'" data-correct="'+(a===pd.q.a)+'" onclick="answerQuiz(this)">'+a+'</button>').join('')+
+    '<div class="result" id="qresult"></div><button class="cont" id="qcont" onclick="closeQuiz()">&#x25BA; Verdergaan</button>';
+  document.getElementById('quiz').style.display='block';
+}
+
+window.answerQuiz=function(btn){
+  let correct=btn.dataset.correct==='true';
+  let pd=quizData;
+  document.querySelectorAll('.qbtn').forEach(b=>{
+    b.style.pointerEvents='none';
+    if(b.dataset.correct==='true')b.classList.add('ok');
+    else if(b===btn&&!correct)b.classList.add('nope');
+  });
+  let res=document.getElementById('qresult');
+  if(correct){
+    learned.add(pd.id);
+    activatePU(pd);
+    res.innerHTML='<span style="color:#5a5">&#x2714; Juist!</span> De kracht van <strong style="color:#f0d9a0">'+pd.pu.n+'</strong> is nu actief!<br><span style="color:#8b5a2b;font-size:12px">'+pd.pu.d+'</span>';
+    flash=.3;flashC='#ffd700';sp(player.x+9,player.y+10,20,C.gold,C.gold2);
+    moon.flash=1;
+    moon.targetGlow=learned.size/PS.length;
+    moon.targetHue=learned.size/PS.length;
+  } else {
+    if(!attempts[pd.id])attempts[pd.id]=0;attempts[pd.id]++;
+    res.innerHTML='<span style="color:#b04040">&#x2718; Helaas, dat is niet juist.</span><br>Het juiste antwoord was:<br><em style="color:#c9a86c">"'+pd.q.a+'"</em><br><span style="color:#6e5545;font-size:11px">Onthoud dit voor de volgende keer!</span>';
+  }
+  res.classList.add('show');
+  document.getElementById('qcont').classList.add('show');
+};
+
+window.closeQuiz=function(){
+  document.getElementById('quiz').style.display='none';
+  state='play';quizData=null;
+};
+
+// === INVENTORY ===
+function showInv(){
+  state='inv';
+  let inv=document.getElementById('inv');
+  let html='<div class="ititle">&#x1F4D6; Psalmenboek</div><div class="isub">Geleerd: '+learned.size+'/'+PS.length+' | Druk I om te sluiten</div><div class="igrid">';
+  for(let pd of PS){
+    let has=learned.has(pd.id);
+    let cd=powerups.find(p=>p.ref===pd.ref);
+    html+='<div class="icard'+(has?'':' locked')+'" '+(has?'onclick="usePsalm('+pd.id+')"':'')+'>'+
+      '<h4>'+(has?pd.ref:'???')+'</h4>'+
+      '<div class="tp">'+pd.pu.t+'</div>';
+    if(has){
+      html+='<p style="color:#c9a86c;font-style:italic;font-size:10px">"'+pd.full+'"</p>'+
+        '<p><strong style="color:#f0d9a0">'+pd.pu.n+'</strong> - '+pd.pu.d+'</p>';
+      if(cd)html+='<p style="color:#40804a">Actief: '+Math.ceil(cd.rem)+'s</p>';
+    } else {
+      html+='<p>Deze pagina ontbreekt nog...</p>';
+      if(attempts[pd.id])html+='<p style="color:#b04040">'+attempts[pd.id]+'x geprobeerd</p>';
+    }
+    html+='</div>';
+  }
+  html+='</div>';
+  inv.innerHTML=html;inv.style.display='block';
+}
+
+window.usePsalm=function(id){
+  let pd=PS.find(p=>p.id===id);if(!pd||!learned.has(id))return;
+  if(powerups.find(p=>p.ref===pd.ref))return;
+  activatePU(pd);
+  showInv();
+};
+
+// === WHIP + ENEMY HIT CHECK ===
+function checkWhip(){
+  let wb=getWhipBox();if(!wb)return;
+  for(let e of enemies){if(e.dead)continue;
+    if(ro(wb,{x:e.x,y:e.y,w:e.w,h:e.h})){dmgEnemy(e,whipDmg());shake=.1;}
+  }
+  let cx=Math.floor((wb.x+wb.w/2)/T),cy=Math.floor((wb.y+wb.h/2)/T);
+  if(cx>=0&&cx<W&&cy>=0&&cy<H&&tiles[cy][cx]===3){
+    tiles[cy][cx]=0;sp(cx*T+16,cy*T+16,8,C.candle,C.orange);score+=50;
+    if(Math.random()>.5)pickups.push({x:cx*T+4,y:cy*T,w:12,h:12,type:'heart',bob:0});
+  }
+}
+
+// === CAMERA ===
+function updateCam(){
+  if(!player)return;
+  cam.x=lerp(cam.x,player.x-CW/2+9,.08);
+  cam.y=lerp(cam.y,player.y-CH/2+17,.08);
+  cam.x=clamp(cam.x,0,W*T-CW);
+  cam.y=clamp(cam.y,0,H*T-CH);
+}
+
+// =====================================================
+// === 16-BIT RENDERING ===
+// =====================================================
+
+function render(){
+  ctx.save();
+  ctx.imageSmoothingEnabled=false;
+  if(shake>0){let s=shake*8;ctx.translate(Math.random()*s-s/2,Math.random()*s-s/2);}
+  drawBG();
+  ctx.save();
+  ctx.translate(-Math.floor(cam.x),-Math.floor(cam.y));
+  drawTiles();
+  drawPickups();
+  drawEnemies();
+  drawPlayer();
+  drawProj();
+  drawPart();
+  ctx.restore();
+  drawHUD();
+  if(flash>0){ctx.globalAlpha=flash;ctx.fillStyle=flashC;ctx.fillRect(0,0,CW,CH);ctx.globalAlpha=1;}
+  ctx.restore();
+}
+
+function drawBG(){
+  // Gradient nacht-hemel
+  let g=ctx.createLinearGradient(0,0,0,CH);
+  g.addColorStop(0,'#05080f');g.addColorStop(.4,'#0d1b2a');g.addColorStop(1,'#1a0f08');
+  ctx.fillStyle=g;ctx.fillRect(0,0,CW,CH);
+
+  // === PIXEL ART STERREN ===
+  const progress=learned.size/PS.length;
+  for(let i=0;i<60+Math.floor(progress*30);i++){
+    let sx=(i*137+50)%CW,sy=(i*97+20)%(CH*0.6);
+    let tw=Math.floor(0.3+Math.sin(frame*.03+i)*0.3+progress*.15);
+    // Pixel art ster cluster
+    if(tw>0.5){
+      ctx.fillStyle='rgba(240,217,160,'+tw+')';
+      ctx.fillRect(sx,sy,2,2);
+      if(tw>0.7){ctx.fillRect(sx-1,sy,1,1);ctx.fillRect(sx+2,sy,1,1);}
+    } else {
+      ctx.fillStyle='rgba(240,217,160,0.3)';
+      ctx.fillRect(sx,sy,1,1);
+    }
+  }
+
+  // === DYNAMISCHE MAAN (pixel art) ===
+  let mx=700-cam.x*.02,my=60;
+  moon.glow+=(moon.targetGlow-moon.glow)*.03;
+  moon.hue+=(moon.targetHue-moon.hue)*.02;
+  if(moon.flash>0) moon.flash-=.008;
+  moon.pulse+=.02;
+  let moonR=28+progress*6+Math.sin(moon.pulse)*1.5;
+  
+  // Maan glow
+  let glowR=moonR+30+progress*40+moon.glow*20;
+  let gr2=ctx.createRadialGradient(mx,my,moonR*.5,mx,my,glowR);
+  let mR=Math.floor(lerp(240,208,progress));
+  let mG=Math.floor(lerp(217,224,progress));
+  let mB=Math.floor(lerp(160,248,progress));
+  let glA=.08+progress*.12+moon.glow*.1;
+  gr2.addColorStop(0,'rgba('+mR+','+mG+','+mB+','+glA+')');
+  gr2.addColorStop(1,'rgba('+mR+','+mG+','+mB+',0)');
+  ctx.fillStyle=gr2;
+  ctx.beginPath();ctx.arc(mx,my,glowR,0,Math.PI*2);ctx.fill();
+  
+  // Pixel art maan lichaam - gebruik fillRect voor pixel stijl
+  // Teken maan als pixel cirkels
+  const moonColor='rgb('+mR+','+mG+','+mB+')';
+  const moonDark='rgba('+Math.floor(mR*.75)+','+Math.floor(mG*.75)+','+Math.floor(mB*.7)+',0.6)';
+  
+  // Maan als pixelated cirkel (stap van 2px voor 16-bit look)
+  let ps=2; // pixel size voor maan detail
+  for(let dy=-moonR;dy<moonR;dy+=ps){
+    for(let dx=-moonR;dx<moonR;dx+=ps){
+      if(dx*dx+dy*dy<moonR*moonR){
+        ctx.fillStyle=moonColor;
+        ctx.fillRect(mx+dx,my+dy,ps,ps);
+      }
+    }
+  }
+  
+  // Maan kraters (pixel art)
+  [[-6,-5,4],[8,4,3],[2,8,3],[-4,6,2]].forEach(([cx2,cy2,r])=>{
+    for(let dy2=-r;dy2<=r;dy2+=ps){
+      for(let dx2=-r;dx2<=r;dx2+=ps){
+        if(dx2*dx2+dy2*dy2<=r*r){
+          ctx.fillStyle=moonDark;
+          ctx.fillRect(mx+cx2+dx2,my+cy2+dy2,ps,ps);
+        }
+      }
+    }
+  });
+  
+  // Heilig kruis op maan (bij voldoende psalmen geleerd)
+  if(progress>.3){
+    let ca=clamp((progress-.3)/.4,0,.9);
+    ctx.fillStyle='rgba(255,250,230,'+ca+')';
+    // Verticale balk
+    for(let dy3=-moonR*.4;dy3<moonR*.4;dy3+=ps)
+      ctx.fillRect(mx-ps*.5,my+dy3,ps,ps);
+    // Horizontale balk
+    for(let dx3=-moonR*.32;dx3<moonR*.32;dx3+=ps)
+      ctx.fillRect(mx+dx3,my-moonR*.08-ps*.5,ps,ps);
+  }
+  
+  // Maan flash burst
+  if(moon.flash>0){
+    let fR=moonR+60*moon.flash;
+    let fg=ctx.createRadialGradient(mx,my,moonR,mx,my,fR);
+    fg.addColorStop(0,'rgba(255,250,200,'+moon.flash*.6+')');
+    fg.addColorStop(1,'rgba(255,250,200,0)');
+    ctx.fillStyle=fg;
+    ctx.beginPath();ctx.arc(mx,my,fR,0,Math.PI*2);ctx.fill();
+  }
+  
+  // Lichtdeeltjes van maan
+  let partCount=Math.floor(progress*12);
+  for(let i=0;i<partCount;i++){
+    let t=(frame*.003+i*.13)%1;
+    let spread=Math.sin(i*7.3)*30;
+    let ppx=mx+spread,ppy=my+moonR+t*150;
+    let alpha=.15*(1-t);
+    ctx.fillStyle='rgba('+mR+','+mG+','+mB+','+alpha+')';
+    ctx.fillRect(ppx,ppy,2,2);
+  }
+
+  // === PARALLAX GEBERGTE (pixel art silhouet) ===
+  // Verre bergen - pixel art gestileerd
+  const drawPixelMountainRange=(yBase,colorHex,parallax,step)=>{
+    ctx.fillStyle=colorHex;
+    for(let x=0;x<CW;x+=step){
+      let h=yBase-180-Math.sin((x+cam.x*parallax)*.008)*60-Math.sin((x+cam.x*parallax)*.022)*30;
+      let mh=Math.floor(h/step)*step;
+      ctx.fillRect(x,mh,step,CH-mh); // enkelvoudig blok per kolom
+    }
+  };
+  drawPixelMountainRange(CH,'#0f1520',0.04,4);
+  drawPixelMountainRange(CH,'#141825',0.07,3);
+  drawPixelMountainRange(CH,'#1a1520',0.1,2);
+
+  // === KASTEEL SILHOUET (pixel art) ===
+  ctx.fillStyle='#0e0c14';
+  let coff=cam.x*.06;
+  // Torens
+  for(let i=0;i<5;i++){
+    let bx=Math.floor((150+i*190-coff%950)/2)*2;
+    let bw=(28+i*4);
+    let bh=110+Math.sin(i*2)*40;
+    ctx.fillRect(bx,CH-200-bh,bw,bh+200);
+    // Kantelen (pixel art)
+    for(let k=0;k<3;k++){
+      if(k%2===0) ctx.fillRect(bx+k*(bw/3),CH-200-bh-12,Math.floor(bw/3),12);
+    }
+    // Torenpuntdak
+    let tw=bw;
+    for(let r=0;r<20;r+=2){
+      let rw=tw*(1-r/20);
+      ctx.fillRect(bx+(bw-rw)/2,CH-200-bh-20+r,rw,2);
+    }
+    // Ramen (2x lichtgevend)
+    ctx.fillStyle='rgba(255,200,60,0.2)';
+    ctx.fillRect(bx+bw/2-3,CH-200-bh+20,6,8);
+    ctx.fillRect(bx+bw/2-3,CH-200-bh+50,6,8);
+    ctx.fillStyle='#0e0c14';
+  }
+  // Muur
+  ctx.fillStyle='#0e0c14';
+  ctx.fillRect(0,CH-200,CW,200);
+}
+
+function drawTiles(){
+  let sx=Math.max(0,Math.floor(cam.x/T)),ex=Math.min(W-1,Math.floor((cam.x+CW)/T)+1);
+  let sy=Math.max(0,Math.floor(cam.y/T)),ey=Math.min(H-1,Math.floor((cam.y+CH)/T)+1);
+  for(let y=sy;y<=ey;y++)for(let x=sx;x<=ex;x++){
+    let t=tiles[y][x],px=x*T,py=y*T;
+    if(t===0)continue;
+    if(t===1){
+      // Steen tile (16-bit stijl)
+      let tileData=((x+y)%2===0)?STONE_TILE_A:STONE_TILE_B;
+      drawSprite(ctx,tileData,px,py,1);
+      // Extra highlight op zon-kant
+      ctx.fillStyle='rgba(110,90,70,0.12)';
+      ctx.fillRect(px+1,py+1,T-2,2);
+    }
+    if(t===2){
+      // Platform (hout)
+      drawSprite(ctx,PLAT_TILE,px,py,1);
+    }
+    if(t===3){
+      // Kaars baksteen
+      ctx.fillStyle=C.brick;ctx.fillRect(px,py,T,T);
+      ctx.strokeStyle='rgba(0,0,0,0.3)';ctx.strokeRect(px+.5,py+.5,T-1,T-1);
+      // Kaars sprite
+      let ff=Math.floor(Math.sin(frame*.2+x)*1)*1; // pixel-stepped flicker
+      drawSprite(ctx,CANDLE_SPRITE,px+8,py-14+ff,1);
+      // Gloed
+      let grd2=ctx.createRadialGradient(px+16,py-10,2,px+16,py-10,28);
+      grd2.addColorStop(0,'rgba(255,200,60,0.2)');grd2.addColorStop(1,'rgba(255,200,60,0)');
+      ctx.fillStyle=grd2;ctx.fillRect(px-12,py-38,56,56);
+    }
+  }
+}
+
+// === PLAYER RENDERING (16-bit sprites) ===
+function drawPlayer(){
+  let p=player;if(!p)return;
+  if(p.inv>0&&Math.floor(p.inv*12)%2===0)return;
+  
+  // Bepaal animatie staat
+  let moving=Math.abs(p.vx)>.4;
+  let curState=p.dead?'dead':p.hurt>0?'hurt':p.atk>0?'attack':!p.onG?(p.vy<0?'jump':'fall'):moving?'walk':'idle';
+  
+  // Kies frame
+  let frames=PLAYER_FRAMES[curState]||PLAYER_FRAMES['idle'];
+  let spd=moving?6:10;
+  let frameIdx=Math.floor(frame/spd)%frames.length;
+  let sprite=frames[frameIdx];
+  
+  const SPRITE_SCALE=2;
+  const spriteW=sprite[0].length*SPRITE_SCALE;
+  const spriteH=sprite.length*SPRITE_SCALE;
+  
+  // Positie: sprite bottom = player bottom
+  let drawX=Math.floor(p.x+p.w/2-spriteW/2);
+  let drawY=Math.floor(p.y+p.h-spriteH+2);
+  
+  // Cape als achtergrond laag (getekend voor de sprite)
+  ctx.save();
+  ctx.translate(drawX+spriteW/2,drawY+spriteH/2);
+  // Eenvoudige cape strepen achter speler
+  let capeLen=12+Math.sin(frame*.08)*3;
+  ctx.fillStyle='#6b1a1a';
+  ctx.fillRect(-2,-spriteH*.4,4,capeLen);
+  ctx.fillStyle='#8b2a2a';
+  ctx.fillRect(-3,-spriteH*.4+2,2,capeLen-2);
+  ctx.restore();
+  
+  // Teken sprite
+  drawSprite(ctx,sprite,drawX,drawY,SPRITE_SCALE,p.dir<0);
+  
+  // Zweep animatie
+  if(p.whipOn){
+    let ang=(p.dir>0?p.whipA:180-p.whipA)*Math.PI/180;
+    let len=50*(hasPU('attack')?1.3:1);
+    let progress=1-p.atk/.28;
+    let wl=len*Math.min(1,progress*2);
+    
+    // Startpunt zweep
+    let wx=p.x+p.w/2+(p.dir>0?8:-8);
+    let wy=p.y+p.h*.35;
+    
+    // Pixel art zweep (gesegmenteerde lijn)
+    let segs=8;
+    ctx.strokeStyle=C.brick;ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(wx,wy);
+    let lastPx=wx,lastPy=wy;
+    for(let s=1;s<=segs;s++){
+      let ts=s/segs;
+      let wave=Math.sin(progress*8+ts*5)*3*(1-ts*0.7);
+      let npx=wx+Math.cos(ang)*wl*ts+wave*Math.sin(ang);
+      let npy=wy+Math.sin(ang)*wl*ts-wave*Math.cos(ang);
+      // Pixel stijl: trek in stappen
+      ctx.lineTo(Math.floor(npx/2)*2,Math.floor(npy/2)*2);
+    }
+    ctx.stroke();
+    // Zweeptip flonkering
+    let tipX=wx+Math.cos(ang)*wl,tipY=wy+Math.sin(ang)*wl;
+    // Pixel art ster op zweeptip
+    ctx.fillStyle='rgba(205,102,32,0.9)';
+    ctx.fillRect(tipX-2,tipY-2,4,4);
+    if(progress>.5){
+      ctx.fillStyle='rgba(255,220,100,0.8)';
+      ctx.fillRect(tipX-4,tipY,2,2);ctx.fillRect(tipX+2,tipY,2,2);
+      ctx.fillRect(tipX,tipY-4,2,2);ctx.fillRect(tipX,tipY+2,2,2);
+    }
+  }
+  
+  // Powerup visuele effecten (pixel art stijl)
+  if(hasPU('shield')||hasPU('defense')){
+    let r=24+Math.floor(Math.sin(frame*.1)*2);
+    let cx2=p.x+p.w/2,cy2=p.y+p.h/2;
+    // Pixel art schild cirkel (stippen)
+    ctx.fillStyle='rgba(192,168,108,0.5)';
+    for(let a=0;a<Math.PI*2;a+=Math.PI/8){
+      ctx.fillRect(cx2+Math.cos(a)*r-1,cy2+Math.sin(a)*r-1,2,2);
+    }
+  }
+  if(hasPU('invincibility')){
+    let cx2=p.x+p.w/2,cy2=p.y+p.h/2;
+    for(let i=0;i<8;i++){
+      let sa=frame*.05+i*0.785;
+      let sr=16+Math.sin(frame*.1+i)*4;
+      ctx.fillStyle='rgba(255,240,100,0.8)';
+      ctx.fillRect(cx2+Math.cos(sa)*sr-2,cy2+Math.sin(sa)*sr-2,4,4);
+    }
+  }
+  if(hasPU('speed')&&Math.abs(p.vx)>1){
+    // Speed trail (pixel ghost)
+    for(let i=1;i<=2;i++){
+      drawSprite(ctx,sprite,drawX-p.dir*i*8,drawY,SPRITE_SCALE,p.dir<0,0.15/i);
+    }
+  }
+}
+
+// === ENEMY RENDERING (16-bit sprites) ===
+function drawEnemies(){
+  for(let e of enemies){
+    if(e.dead){ctx.globalAlpha=e.dt/.4;drawEnemy(e);ctx.globalAlpha=1;continue;}
+    if(e.fl>0){ctx.globalAlpha=.5+Math.sin(frame)*.3;}
+    drawEnemy(e);
+    ctx.globalAlpha=1;
+    // HP balk (pixel stijl)
+    if(e.hp<(e.type==='skeleton'?6:e.type==='bat'?2:4)){
+      ctx.fillStyle='#2a0000';ctx.fillRect(e.x,e.y-8,e.w,4);
+      ctx.fillStyle=C.red2;ctx.fillRect(e.x,e.y-8,e.w*(e.hp/({skeleton:6,bat:2,ghost:4}[e.type]||4)),4);
+      ctx.fillStyle='rgba(255,100,100,0.4)';ctx.fillRect(e.x,e.y-8,2,4); // highlight
+    }
+  }
+}
+
+function drawEnemy(e){
+  let px=Math.floor(e.x),py=Math.floor(e.y);
+  switch(e.type){
+    case 'skeleton':{
+      let throwing=e.tt<0.3;
+      let frames2=throwing?SKEL_FRAMES.throw:SKEL_FRAMES.walk;
+      let fIdx=Math.floor(frame/8)%frames2.length;
+      let sprite=frames2[fIdx];
+      drawSprite(ctx,sprite,px,py,2,e.dir<0);
+      break;
+    }
+    case 'bat':{
+      let fIdx=Math.floor(frame/6)%BAT_FRAMES.length;
+      drawSprite(ctx,BAT_FRAMES[fIdx],px-4,py-2,2,e.dir<0);
+      break;
+    }
+    case 'ghost':{
+      let fIdx=Math.floor(frame/10)%GHOST_FRAMES.length;
+      drawSprite(ctx,GHOST_FRAMES[fIdx],px,py-4,2,e.dir<0,e.al||0.75);
+      break;
+    }
+  }
+}
+
+// === PICKUPS RENDERING ===
+function drawPickups(){
+  for(let pk of pickups){
+    let bob=Math.floor(Math.sin(pk.bob)*3/2)*2; // pixel-stepped bob
+    if(pk.type==='scroll'){
+      // Gloed
+      let grd3=ctx.createRadialGradient(pk.x+6,pk.y+7+bob,2,pk.x+6,pk.y+7+bob,18);
+      grd3.addColorStop(0,'rgba(240,217,160,0.3)');grd3.addColorStop(1,'rgba(240,217,160,0)');
+      ctx.fillStyle=grd3;ctx.fillRect(pk.x-12,pk.y-11+bob,36,36);
+      // Scroll pixel sprite
+      drawSprite(ctx,SCROLL_SP,pk.x,pk.y+bob,2);
+    } else if(pk.type==='heart'){
+      drawSprite(ctx,HEART_SP,pk.x,pk.y+bob,2);
+    }
+  }
+}
+
+// === PROJECTIELEN RENDERING ===
+function drawProj(){
+  for(let pr of projectiles){
+    if(pr.type==='hw'){
+      drawSprite(ctx,HW_SP,Math.floor(pr.x),Math.floor(pr.y),1);
+    } else if(pr.type==='bone'){
+      ctx.save();
+      let cx3=pr.x+4,cy3=pr.y+4;
+      ctx.translate(cx3,cy3);
+      ctx.rotate((pr.ang||0)*Math.PI/180);
+      ctx.translate(-cx3,-cy3);
+      drawSprite(ctx,BONE_SP,Math.floor(pr.x),Math.floor(pr.y),1);
+      ctx.restore();
+    }
+  }
+}
+
+// === PARTICLES RENDERING ===
+function drawPart(){
+  for(let p of particles){
+    let a=p.life/(p.life+.3);
+    ctx.globalAlpha=a;ctx.fillStyle=p.c;
+    // Pixel grootte (afgerond)
+    let sz=Math.max(1,Math.floor(p.sz*a));
+    ctx.fillRect(Math.floor(p.x),Math.floor(p.y),sz,sz);
+  }
+  ctx.globalAlpha=1;
+}
+
+// === HUD RENDERING (16-bit stijl) ===
+function pixelText(text,x,y,color,scale=1){
+  // Gebruik canvas font maar in pixel-achtige stijl
+  ctx.font=(8*scale)+'px "Courier New",monospace';
+  ctx.fillStyle='rgba(0,0,0,0.7)';
+  ctx.fillText(text,x+1,y+1); // schaduw
+  ctx.fillStyle=color;
+  ctx.fillText(text,x,y);
+}
+
+function drawHUD(){
+  // HUD achtergrond balk (pixel art stijl)
+  ctx.fillStyle='rgba(0,0,0,0.7)';
+  ctx.fillRect(0,0,CW,44);
+  // Pixel art border
+  ctx.fillStyle='#3d2419';
+  ctx.fillRect(0,0,CW,2);
+  ctx.fillRect(0,42,CW,2);
+  
+  // === HARTEN (pixel art) ===
+  for(let i=0;i<player.maxHp;i+=2){
+    let hx=12+i*10,hy=8;
+    let filled=i<player.hp;
+    // Teken hart sprite (kleiner)
+    ctx.save();
+    ctx.translate(hx,hy);
+    // Kleine pixel hart
+    ctx.fillStyle=filled?'#cc4444':'#333333';
+    ctx.fillRect(1,0,2,1);ctx.fillRect(4,0,2,1);
+    ctx.fillRect(0,1,7,2);
+    ctx.fillRect(0,3,7,2);
+    ctx.fillRect(1,5,5,1);
+    ctx.fillRect(2,6,3,1);
+    ctx.fillRect(3,7,1,1);
+    if(filled){
+      ctx.fillStyle='rgba(255,150,150,0.5)';
+      ctx.fillRect(1,1,2,1);
+    }
+    ctx.restore();
+  }
+  
+  // Score (pixel font stijl)
+  ctx.textAlign='right';
+  pixelText('SCORE: '+score,CW-10,22,'#f0d9a0',2);
+  
+  // Sub-wapen
+  ctx.textAlign='left';
+  pixelText('SW: '+(player.sub==='holywater'?'H2O':player.sub==='cross_boomerang'?'KRS':'BIJ'),CW-175,14,'#c9a86c',1.5);
+  pixelText('\u2665x'+player.hearts,CW-175,28,'#cc4444',1.5);
+  
+  // Niveau naam
+  ctx.textAlign='center';
+  pixelText('~DE KASTEELPOORT~',CW/2,16,'#f0d9a0',2);
+  pixelText('PSALMEN: '+learned.size+'/'+PS.length,CW/2,30,'#8b5a2b',1.5);
+  
+  // === ACTIEVE POWERUPS (pixel art balken) ===
+  let pyy=52;
+  for(let pu of powerups){
+    ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(CW/2-100,pyy-2,200,14);
+    // Border
+    ctx.fillStyle='#3d2419';ctx.fillRect(CW/2-100,pyy-2,200,1);ctx.fillRect(CW/2-100,pyy+11,200,1);
+    let pct=pu.rem/pu.total;
+    let col=pu.t==='attack'||pu.t==='double_damage'?'#cc4444':
+            pu.t==='shield'||pu.t==='defense'?'#4060a0':
+            pu.t==='speed'?'#40804a':
+            pu.t==='invincibility'?'#c9a86c':
+            pu.t==='freeze'?'#88ccff':'#c9a86c';
+    ctx.fillStyle=col;ctx.fillRect(CW/2-98,pyy,Math.floor(196*pct/4)*4,10); // pixel-snapped balk
+    ctx.fillStyle='rgba(255,255,255,0.2)';ctx.fillRect(CW/2-98,pyy,Math.floor(196*pct/4)*4,2); // highlight
+    ctx.textAlign='center';
+    pixelText(pu.n+' ('+Math.ceil(pu.rem)+'s)',CW/2,pyy+9,col,1.2);
+    pyy+=16;
+  }
+  
+  // Vijanden teller
+  ctx.textAlign='left';
+  let alive=enemies.filter(e=>!e.dead).length;
+  pixelText('VJD:'+alive,10,52,'#cc4444',1.5);
+  
+  // Bedieningsinstructies (dynamisch uit BINDINGS)
+  let _fmt=(c)=>c.replace('Key','').replace('Arrow','');
+  let hint=`[${_fmt(BINDINGS.inv)}]INV [${_fmt(BINDINGS.jump)}]SPRING [${_fmt(BINDINGS.whip)}]ZWEEP [${_fmt(BINDINGS.sub)}]SW`;
+  pixelText(hint,14,CH-8,'rgba(110,85,69,0.8)',1.2);
+  ctx.textAlign='left';
+}
+
+// === GAME LOOP ===
+let lastTime=0;
+function gameLoop(ts){
+  let dt=Math.min((ts-lastTime)/1000,.05);lastTime=ts;
+  frame++;
+
+  if(state==='play'){
+    updatePlayer(dt);
+    updateEnemies(dt);
+    updateProj(dt);
+    updatePickups(dt);
+    updatePart(dt);
+    updatePU(dt);
+    checkWhip();
+    updateCam();
+    if(shake>0)shake-=dt;
+    if(flash>0)flash-=dt*.8;
+    if(kwp(BINDINGS.inv)&&state==='play'){showInv();}
+  }
+  if(state==='inv'&&kwp(BINDINGS.inv)){
+    document.getElementById('inv').style.display='none';state='play';
+  }
+
+  if(state==='play'||state==='dead'||state==='inv') render();
+
+  kp={};
+  requestAnimationFrame(gameLoop);
+}
+
+// === SETTINGS ===
+function renderSettings() {
+  const lbls = {left:'Links',right:'Rechts',up:'Boven',down:'Beneden',jump:'Springen',whip:'Aanvallen (Zweep)',sub:'Subwapen',inv:'Inventaris'};
+  let html = '';
+  for(let k in BINDINGS) {
+    let disp = BINDINGS[k].replace('Key','').replace('Arrow','Pijl ');
+    html += `<div class="srow">
+      <label>${lbls[k]}</label>
+      <button class="skey ${bindingKey===k?'wait':''}" onclick="bindKey('${k}')">${bindingKey===k?'Druk toets...':disp}</button>
+    </div>`;
+  }
+  document.getElementById('sk-list').innerHTML = html;
+}
+
+window.showSettings = function() {
+  document.getElementById('settings').style.display='block';
+  bindingKey = null;
+  renderSettings();
+};
+
+window.closeSettings = function() {
+  document.getElementById('settings').style.display='none';
+  bindingKey = null;
+  try{localStorage.setItem('psalm_bindings', JSON.stringify(BINDINGS));}catch(e){}
+  let _fmt=(c)=>c.replace('Key','').replace('Arrow','');
+  document.getElementById('controls').innerHTML = 
+    `Besturing: Pijltjes (${_fmt(BINDINGS.left)}/${_fmt(BINDINGS.right)}) / ${_fmt(BINDINGS.jump)} / ${_fmt(BINDINGS.whip)} / ${_fmt(BINDINGS.sub)} / ${_fmt(BINDINGS.inv)} (pas aan in Instellingen)`;
+};
+
+window.bindKey = function(k) {
+  bindingKey = k;
+  renderSettings();
+};
+
+// === START ===
+window.startGame=function(){
+  document.getElementById('menu').style.display='none';
+  player=mkPlayer();
+  enemies=[];particles=[];projectiles=[];pickups=[];powerups=[];
+  score=0;shake=0;flash=0;frame=0;cam={x:0,y:0};
+  genLevel();
+  state='play';
+};
+
+requestAnimationFrame(gameLoop);
