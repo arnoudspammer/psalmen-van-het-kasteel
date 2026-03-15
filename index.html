@@ -39,6 +39,13 @@ canvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges;borde
 .mbtn:hover{background:linear-gradient(180deg,#a06b35,#6d4520)}
 #controls{font-size:11px;color:#6e5545;margin-top:14px;text-align:center;line-height:1.7;font-family:'Courier New',monospace}
 .badge{display:inline-block;background:#2a1a0a;border:1px solid #5c3a1a;color:#c9a86c;font-size:10px;padding:2px 6px;margin:2px;font-family:'Courier New',monospace}
+#settings{display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(5,2,0,0.95);pointer-events:auto;z-index:30;overflow-y:auto}
+.sbox{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(30,15,5,0.97);border:3px solid #8b5a2b;padding:28px;max-width:500px;width:90%;text-align:center}
+.srow{display:flex;justify-content:space-between;align-items:center;margin:8px 0;border-bottom:1px dashed #5c3a1a;padding-bottom:4px}
+.srow label{color:#c9a86c;font-family:'Courier New',monospace;font-size:14px}
+.skey{background:#111;border:1px solid #c9a86c;color:#f0d9a0;padding:4px 12px;font-family:'Courier New',monospace;cursor:pointer;min-width:100px}
+.skey.wait{background:#a03a20;border-color:#f0d9a0;animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.5}}
 </style>
 </head>
 <body>
@@ -56,14 +63,38 @@ canvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges;borde
 <span class="badge">PIXEL ART</span>
 <span class="badge">&#x271D; PSALMEN</span>
 </div>
+<div style="display:flex;gap:12px">
 <button class="mbtn" onclick="startGame()">&#x25BA; BEGINNEN</button>
-<div id="controls">
-Pijltjestoetsen = bewegen &nbsp;|&nbsp; Z = springen &nbsp;|&nbsp; X = zweep<br>
-C = subwapen &nbsp;|&nbsp; I = inventaris &nbsp;|&nbsp; ESC = pauze
+<button class="mbtn" onclick="showSettings()" style="padding:12px 24px">&#x2699; INSTELLINGEN</button>
 </div>
+<div id="controls" style="margin-top:20px;color:#c9a86c">
+  Besturing: Pijltjestoetsen / Z / X / C / I (pas aan in Instellingen)
+</div>
+</div>
+<div id="settings">
+  <div class="sbox">
+    <h3 style="color:#f0d9a0;margin-bottom:20px;font-family:'Courier New',monospace">&#x2699; BESTURING AANPASSEN</h3>
+    <div id="sk-list"></div>
+    <button class="mbtn" onclick="closeSettings()" style="margin-top:24px">&#x2714; OPSLAAN</button>
+  </div>
 </div>
 </div>
 <script>
+
+// === CONFIGURATIE (TOETSEN) ===
+let BINDINGS = {
+  left: 'ArrowLeft',
+  right: 'ArrowRight',
+  up: 'ArrowUp',
+  down: 'ArrowDown',
+  jump: 'KeyZ',
+  whip: 'KeyX',
+  sub: 'KeyC',
+  inv: 'KeyI'
+};
+try{let saved=localStorage.getItem('psalm_bindings');if(saved)BINDINGS=JSON.parse(saved);}catch(e){}
+
+let bindingKey = null;
 
 // === PSALM DATA ===
 const PS=[
@@ -743,7 +774,17 @@ let player=null, quizData=null;
 let moon={glow:0,targetGlow:0,hue:0,targetHue:0,pulse:0,rings:0,flash:0};
 
 // === INPUT ===
-window.addEventListener('keydown',e=>{keys[e.code]=true;kp[e.code]=true;e.preventDefault()});
+window.addEventListener('keydown',e=>{
+  if(bindingKey) {
+    e.preventDefault();
+    BINDINGS[bindingKey] = e.code;
+    bindingKey = null;
+    renderSettings();
+    return;
+  }
+  keys[e.code]=true;kp[e.code]=true;
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
+});
 window.addEventListener('keyup',e=>{keys[e.code]=false;e.preventDefault()});
 function kd(c){return!!keys[c]}function kwp(c){return!!kp[c]}
 
@@ -836,24 +877,24 @@ function updatePlayer(dt){
   if(p.inv>0)p.inv-=dt;
   if(p.hurt>0){p.hurt-=dt;p.vx*=.85;p.vy+=GRAV;p.vy=Math.min(p.vy,MFALL);moveEnt(p);return;}
   if(p.atk>0){p.atk-=dt;p.whipOn=p.atk>.05;if(p.atk<=0){p.whipOn=false;}}
-  p.crouch=kd('KeyD')&&p.onG&&p.atk<=0;
+  p.crouch=kd(BINDINGS.down)&&p.onG&&p.atk<=0;
   p.h=p.crouch?22:34;
-  if(kd('KeyS')){p.vx=-spd;p.dir=-1;}
-  else if(kd('KeyF')){p.vx=spd;p.dir=1;}
+  if(kd(BINDINGS.left)){p.vx=-spd;p.dir=-1;}
+  else if(kd(BINDINGS.right)){p.vx=spd;p.dir=1;}
   else p.vx*=.7;
-  if(kwp('KeyZ')&&p.onG){p.vy=jmp;p.onG=false;}
-  if(kwp('KeyX')&&p.atk<=0){
+  if(kwp(BINDINGS.jump)&&p.onG){p.vy=jmp;p.onG=false;}
+  if(kwp(BINDINGS.whip)&&p.atk<=0){
     p.atk=.28;p.whipOn=true;
-    if(kd('ArrowUp'))p.whipA=p.dir>0?-90:-90;
-    else if(kd('ArrowDown')&&!p.onG)p.whipA=90;
+    if(kd(BINDINGS.up))p.whipA=p.dir>0?-90:-90;
+    else if(kd(BINDINGS.down)&&!p.onG)p.whipA=90;
     else p.whipA=p.dir>0?0:180;
   }
-  if(kwp('KeyC')&&p.hearts>0&&p.sub){
+  if(kwp(BINDINGS.sub)&&p.hearts>0&&p.sub){
     p.hearts--;
     let px=p.x+9,py=p.y+8;
     projectiles.push({x:px,y:py,vx:p.dir*4,vy:-3,type:'hw',dmg:2,life:2,pl:true,w:8,h:8});
   }
-  if(kwp('KeyI')){showInv();return;}
+  if(kwp(BINDINGS.inv)){showInv();return;}
   p.vy+=GRAV;p.vy=Math.min(p.vy,MFALL);
   moveEnt(p);
   p.onG=false;
@@ -1585,8 +1626,10 @@ function drawHUD(){
   let alive=enemies.filter(e=>!e.dead).length;
   pixelText('VJD:'+alive,10,52,'#cc4444',1.5);
   
-  // Bedieningsinstructies
-  pixelText('[I]INV [Z]SPRING [X]ZWEEP [C]SW',14,CH-8,'rgba(110,85,69,0.8)',1.2);
+  // Bedieningsinstructies (dynamisch uit BINDINGS)
+  let _fmt=(c)=>c.replace('Key','').replace('Arrow','');
+  let hint=`[${_fmt(BINDINGS.inv)}]INV [${_fmt(BINDINGS.jump)}]SPRING [${_fmt(BINDINGS.whip)}]ZWEEP [${_fmt(BINDINGS.sub)}]SW`;
+  pixelText(hint,14,CH-8,'rgba(110,85,69,0.8)',1.2);
   ctx.textAlign='left';
 }
 
@@ -1607,9 +1650,9 @@ function gameLoop(ts){
     updateCam();
     if(shake>0)shake-=dt;
     if(flash>0)flash-=dt*.8;
-    if(kwp('KeyI')&&state==='play'){showInv();}
+    if(kwp(BINDINGS.inv)&&state==='play'){showInv();}
   }
-  if(state==='inv'&&kwp('KeyI')){
+  if(state==='inv'&&kwp(BINDINGS.inv)){
     document.getElementById('inv').style.display='none';state='play';
   }
 
@@ -1618,6 +1661,40 @@ function gameLoop(ts){
   kp={};
   requestAnimationFrame(gameLoop);
 }
+
+// === SETTINGS ===
+function renderSettings() {
+  const lbls = {left:'Links',right:'Rechts',up:'Boven',down:'Beneden',jump:'Springen',whip:'Aanvallen (Zweep)',sub:'Subwapen',inv:'Inventaris'};
+  let html = '';
+  for(let k in BINDINGS) {
+    let disp = BINDINGS[k].replace('Key','').replace('Arrow','Pijl ');
+    html += `<div class="srow">
+      <label>${lbls[k]}</label>
+      <button class="skey ${bindingKey===k?'wait':''}" onclick="bindKey('${k}')">${bindingKey===k?'Druk toets...':disp}</button>
+    </div>`;
+  }
+  document.getElementById('sk-list').innerHTML = html;
+}
+
+window.showSettings = function() {
+  document.getElementById('settings').style.display='block';
+  bindingKey = null;
+  renderSettings();
+};
+
+window.closeSettings = function() {
+  document.getElementById('settings').style.display='none';
+  bindingKey = null;
+  try{localStorage.setItem('psalm_bindings', JSON.stringify(BINDINGS));}catch(e){}
+  let _fmt=(c)=>c.replace('Key','').replace('Arrow','');
+  document.getElementById('controls').innerHTML = 
+    `Besturing: Pijltjes (${_fmt(BINDINGS.left)}/${_fmt(BINDINGS.right)}) / ${_fmt(BINDINGS.jump)} / ${_fmt(BINDINGS.whip)} / ${_fmt(BINDINGS.sub)} / ${_fmt(BINDINGS.inv)} (pas aan in Instellingen)`;
+};
+
+window.bindKey = function(k) {
+  bindingKey = k;
+  renderSettings();
+};
 
 // === START ===
 window.startGame=function(){
