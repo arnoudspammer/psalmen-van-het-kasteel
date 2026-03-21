@@ -790,16 +790,41 @@ function mkPlayer(){
 
 function updatePlayer(dt){
   let p=player;if(!p||p.dead)return;
-  let spd=hasPU('speed')?3.5:2.2, jmp=hasPU('speed')?-10:-8.5;
+  // Cave Story physics constants
+  let maxSpd=hasPU('speed')?4.0:2.8;
+  let jmp=hasPU('speed')?-10:-8.5;
+  let accel = p.onG ? 0.3 : 0.15; // Snappier on ground, floaty in air
+  let fric = p.onG ? 0.75 : 0.95; // Less friction in air
+  
   if(p.inv>0)p.inv-=dt;
   if(p.hurt>0){p.hurt-=dt;p.vx*=.85;p.vy+=GRAV;p.vy=Math.min(p.vy,MFALL);moveEnt(p);return;}
   if(p.atk>0){p.atk-=dt;p.whipOn=p.atk>.05;if(p.atk<=0){p.whipOn=false;}}
   p.crouch=kd(BINDINGS.down)&&p.onG&&p.atk<=0;
   p.h=p.crouch?22:34;
-  if(kd(BINDINGS.left)){p.vx=-spd;p.dir=-1;}
-  else if(kd(BINDINGS.right)){p.vx=spd;p.dir=1;}
-  else p.vx*=.7;
+  
+  // Cave Story movement (acceleration based)
+  if(kd(BINDINGS.left)){
+    p.vx-=accel;
+    if(p.vx<-maxSpd) p.vx=-maxSpd;
+    p.dir=-1;
+  }
+  else if(kd(BINDINGS.right)){
+    p.vx+=accel;
+    if(p.vx>maxSpd) p.vx=maxSpd;
+    p.dir=1;
+  }
+  else {
+    p.vx*=fric; // Friction
+    if(Math.abs(p.vx)<0.1) p.vx=0;
+  }
+  
   if(kwp(BINDINGS.jump)&&p.onG){p.vy=jmp;p.onG=false;}
+  
+  // Cave Story variable jump height
+  if(!kd(BINDINGS.jump) && p.vy < 0) {
+    p.vy *= 0.75; // Cut jump short if button released
+  }
+
   if(kwp(BINDINGS.whip)&&p.atk<=0){
     p.atk=.28;p.whipOn=true;
     if(kd(BINDINGS.up))p.whipA=p.dir>0?-90:-90;
@@ -812,7 +837,12 @@ function updatePlayer(dt){
     projectiles.push({x:px,y:py,vx:p.dir*4,vy:-3,type:'hw',dmg:2,life:2,pl:true,w:8,h:8});
   }
   if(kwp(BINDINGS.inv)){showInv();return;}
-  p.vy+=GRAV;p.vy=Math.min(p.vy,MFALL);
+  
+  // Custom gravity modifier for floatier feel at the apex of the jump
+  let currentGrav = GRAV;
+  if(Math.abs(p.vy) < 2) currentGrav *= 0.6; // Hang-time
+  
+  p.vy+=currentGrav;p.vy=Math.min(p.vy,MFALL);
   moveEnt(p);
   p.onG=false;
   let by=Math.floor((p.y+p.h+1)/T);
@@ -821,7 +851,6 @@ function updatePlayer(dt){
   }
   p.at+=dt;if(p.at>.15){p.at=0;p.anim=(p.anim+1)%4;}
   let moving=Math.abs(p.vx)>.4;
-  let sprintMul=Math.abs(p.vx)/2.2;
   let curState=p.dead?'dead':p.hurt>0?'hurt':p.atk>0?'attack':p.crouch?'crouch':!p.onG?(p.vy<0?'jump':'fall'):moving?'walk':'idle';
   if(curState!==p.prevState){p.transTimer=.15;p.prevState=curState;}
   if(p.transTimer>0) p.transTimer-=dt;
